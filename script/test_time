@@ -1,0 +1,62 @@
+#!/bin/sh
+# Help to test the start and stop time of a service
+
+usage() {
+    echo "Help to test the start and stop time of a service."
+    echo "Usage: ./test_time dir (e.g. ./test_time /etc/init.d/)"
+    exit 0
+}
+
+TS="local ts=\`date +\%S\%N\`"
+TE="local te=\`date +\%S\%N\`; dif=\$(((\$te-\$ts)/1000000))"
+
+add_ts() {
+    local file="$1"
+    local action="$2"
+    
+    stno=`cat "$file" | grep -n "^${action}[ ]*()" | cut -d: -f1`
+    cat "$file" | grep "^${action}[ ]*()[ ]*{[ ]*$" > /dev/null && {
+        sed -i "$stno a $TS" "$file"
+    } || {
+        sed -i "$(($stno+1)) a $TS" "$file"
+    }
+}
+
+add_te() {
+    local file="$1"
+    local action="$2" 
+
+    stno=`cat "$file" | grep -n "^${action}[ ]*()" | cut -d: -f1`
+    edno=`sed -n "$stno,$ p" "$file" | grep -n "^}[ ]*$" | head -n 1 | cut -d: -f1` 
+    line=$(($stno+$edno-1))
+ 
+    [ -n "$line" ] && {
+        ret=`sed -n "$(($line-1)) p" "$file"`
+        echo $ret | grep "return 0" > /dev/null && {
+            sed -i "$(($line-2)) a $TE\;echo \[===$action $file costs: \$dif ms===\] > /dev/console" "$file" 
+        } || {
+            sed -i "$(($line-1)) a $TE\;echo \[===$action $file costs: \$dif ms===\] > /dev/console" "$file" 
+        }
+    }
+}
+
+add_time() {
+    local file="$1"
+    local action="$2"
+    add_ts "$file" $action && add_te "$file" $action
+}
+
+[ $# -ne 1 ] && usage
+
+dir="$1"
+[ -d $dir ] || exit 0
+
+for f in `ls $dir`; do
+    [ "$dir" = "." ] || f=${dir}/${f}
+    echo $f
+    [ -f "$f" ] || continue
+    cat $f | grep "^start[ ]*()" > /dev/null && add_time "$f" "start"
+    cat $f | grep "^start_service[ ]*()" > /dev/null && add_time "$f" "start_service"
+    cat $f | grep "^stop[ ]*()" > /dev/null && add_time "$f" "stop"
+    cat $f | grep "^stop_service[ ]*()" > /dev/null && add_time "$f" "stop_service"
+done
