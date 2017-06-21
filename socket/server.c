@@ -5,6 +5,7 @@
 #include <sys/socket.h>
 #include <sys/select.h>
 #include <arpa/inet.h>
+#include <netinet/in.h>
 
 #define DEBUG
 
@@ -52,7 +53,7 @@ static int create_socket(void)
         return -1;
     }
 
-    return 0;
+    return fd;
 }
 
 static int build_server(const char *ip, int port)
@@ -147,6 +148,7 @@ static int handle_data(fd_set rfds, char *buf, int len)
         if (g_client.cli[i].fd > 0 && FD_ISSET(g_client.cli[i].fd, &rfds))
         {
             data_len = recv(g_client.cli[i].fd, (char *) buf, len, 0);
+            /* client close connection or error */
             if (data_len <= 0)
             {
                 close(g_client.cli[i].fd);
@@ -154,6 +156,7 @@ static int handle_data(fd_set rfds, char *buf, int len)
                 g_client.num--;
                 break; 
             }
+            dbg("recv data from %s: %s\n", inet_ntoa(*((struct in_addr*)&g_client.cli[i].ip)), buf);
         }
     }
     return 0;
