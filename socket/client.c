@@ -16,94 +16,100 @@
 
 #define BUFF_SIZE 1024
 
-#define MAX(a, b) ((a) > (b) ? (a) : (b))
+struct s_client {
+    int fd;
+    int (*create_socket) (void);
+    int (*connect_srv) (const char *ip, int port);
+    int (*send_to_srv) (int srv_fd, char *msg, int len);
+    void (*close_connect) (void);
+} g_client;
 
-int sock_fd = -1;
-
-static int connect_server(const char *ip, int port)
+int connect_server(const char *ip, int port)
 {
-    struct sockaddr_in addr;
+    struct sockaddr_in srv;
     int ret = -1;
-    struct sockaddr_in server_addr;
-
-    memset(&addr, 0, sizeof(addr));
-    addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = htons(INADDR_ANY);
-    addr.sin_port = htons(0);
-
-    sock_fd = socket(AF_INET, SOCK_STREAM, 0);
-    if (sock_fd < 0)
-    {
-        dbg("create socket failed\n");
-        return -1;
-    }
-
-    ret = bind(sock_fd, (struct sockaddr *)&addr, sizeof(addr)); 
-    if (ret < 0)
-    {
-        dbg("client bind port failed\n");
-        return -1;
-    }
-
-    memset(&server_addr, 0, sizeof(server_addr));
-    server_addr.sin_family = AF_INET;
-    if (ip == NULL || inet_aton(ip, &server_addr.sin_addr) == 0)
-    {
-        dbg("server ip addr error\n");
-        return -1;
-    }
-    server_addr.sin_port = htons(port);
-    socklen_t server_addr_len = sizeof(server_addr);
-
-    ret = connect(sock_fd, (struct sockaddr *)&server_addr, server_addr_len);
-    if (ret < 0)
-    {
-        dbg("can not connect to %s\n", ip);
-        return -1;
-    }
     
-    return 0;
-}
+    memset(&srv, 0, sizeof(srv));
+    srv.sin_family = AF_INET;
+    srv.sin_addr.s_addr = inet_addr(ip);
+    srv.sin_port = htons(port);
 
-static int talk_to_server(void)
-{
-    char buf[BUFF_SIZE] = {0};
-    int data_len;
-#if 0
-    data_len = recv(sock_fd, buf, sizeof(buf), 0);
-    if (data_len < 0)
+    ret = connect(g_client.fd, (struct sockaddr*)&srv, sizeof(srv));
+    if (ret < 0)
     {
-        dbg("recv data from server\n"); 
+        dbg("connect to server failed\n");
         return -1;
     }
-#endif
-    snprintf(buf, sizeof(buf), "%s", "Hello I am client\n");
-    send(sock_fd, buf, sizeof(buf), 0);
+
     return 0;
 }
 
-static void close_connection(void)
+int send_to_server(int srv_fd, char *msg, int len)
 {
-    if (sock_fd < 0)
+    send(srv_fd, msg, len, 0); 
+    return 0;
+}
+
+void close_connect(void)
+{
+    if (g_client.fd > 0)
     {
-        close(sock_fd);
+        close(g_client.fd);
     }
 }
+
+int create_socket(void)
+{
+   struct sockaddr_in addr;
+   int fd = -1;
+
+   fd = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
+   if (fd < 0)
+   {
+       dbg("creage_socket failed\n");
+       return -1;
+   }
+
+   return fd;
+}
+
+
+
+static int init_client(struct s_client *client)
+{
+    if (client == NULL)
+    {
+        return -1;
+    }
+
+    client->fd = -1;
+    client->create_socket = create_socket;
+    client->connect_srv = connect_server;
+    client->send_to_srv = send_to_server;
+    client->close_connect = close_connect;
+    return 0;
+}
+
 int main(int argc, char **argv)
 {
-    int i = 0;
-
-    if (connect_server("127.0.0.1", 6666) < 0)
+    int ret = -1;
+    int i = 0; 
+    char msg[BUFF_SIZE] = {"Hello I am client"};
+    
+    ret = init_client(&g_client);
+    if (ret < 0)
     {
+        dbg("init_client failed\n");
         return -1;
     }
 
-    for (i = 0; i < 1000; i++)
+    g_client.fd = g_client.create_socket();
+    g_client.connect_srv("127.0.0.1", 6666);
+    for (i = 0; i < 100; i++)
     {
-        talk_to_server();
-        sleep(3);
+        g_client.send_to_srv(g_client.fd, msg, sizeof(msg)); 
+        sleep(1);
     }
-
-    close_connection();
+    g_client.close_connect();
     return 0;
 }
