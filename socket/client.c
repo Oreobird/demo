@@ -20,7 +20,8 @@ struct s_client {
     int fd;
     int (*create_socket) (void);
     int (*connect_srv) (const char *ip, int port);
-    int (*send_to_srv) (int srv_fd, char *msg, int len);
+    int (*send_to_srv) (char *msg, int len);
+    int (*recv_from_srv) (char *msg);
     void (*close_connect) (void);
 } g_client;
 
@@ -44,9 +45,12 @@ int connect_server(const char *ip, int port)
     return 0;
 }
 
-int send_to_server(int srv_fd, char *msg, int len)
+int send_to_server(char *msg, int len)
 {
-    send(srv_fd, msg, len, 0); 
+    if (g_client.fd > 0)
+    {
+        send(g_client.fd, msg, len, 0); 
+    }
     return 0;
 }
 
@@ -107,7 +111,7 @@ int main(int argc, char **argv)
     g_client.connect_srv("127.0.0.1", 6666);
     for (i = 0; i < 100; i++)
     {
-        g_client.send_to_srv(g_client.fd, msg, sizeof(msg)); 
+        g_client.send_to_srv(msg, sizeof(msg)); 
         sleep(1);
     }
     g_client.close_connect();
