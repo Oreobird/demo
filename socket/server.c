@@ -161,6 +161,7 @@ static int handle_data(fd_set rfds, char *buf, int len)
     }
     return 0;
 }
+
 static void select_loop(void)
 {
     fd_set rfds;

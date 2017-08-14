@@ -5,6 +5,8 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#include <errno.h>
+#include <fcntl.h>
 
 #define DEBUG
 
@@ -15,6 +17,7 @@
 #endif
 
 #define BUFF_SIZE 1024
+#define TIME_OUT 5
 
 struct s_client {
     int fd;
@@ -24,6 +27,106 @@ struct s_client {
     int (*recv_from_srv) (char *msg);
     void (*close_connect) (void);
 } g_client;
+
+int set_socket_nonblock(int fd)
+{
+    int flags = -1;
+    int ret = -1;
+
+    flags = fcntl(fd, F_GETFL, 0);
+    if (flags < 0)
+    {
+        dbg("fcntl get socket error:%s\n", strerror(errno));
+        return -1;
+    }
+
+    flags |= O_NONBLOCK;
+
+    ret = fcntl(fd, F_SETFL, flags);
+    if (ret < 0)
+    {
+        dbg("fcntl set socket error:%s\n", strerror(errno));
+        return -1;
+    }
+
+    return 0;
+}
+
+int set_socket_block(int fd)
+{
+    int flags = -1;
+    int ret = -1;
+
+    flags = fcntl(fd, F_GETFL, 0);
+    if (flags < 0)
+    {
+        dbg("fcntl get socket error:%s\n", strerror(errno));
+        return -1;
+    }
+
+    flags &= (~O_NONBLOCK);
+
+    ret = fcntl(fd, F_SETFL, flags);
+    if (ret < 0)
+    {
+        dbg("fcntl set socket error:%s\n", strerror(errno));
+        return -1;
+    }
+
+    return 0;
+}
+
+int check_connect_timeout(int fd)
+{
+    struct timeval timeout;
+    fd_set rdset;
+    int optval;
+    int ret = -1;
+    socklen_t len;
+
+    if (errno == EINPROGRESS)
+    {
+        len = sizeof(int);
+        timeout.tv_sec = TIME_OUT;
+        timeout.tv_usec = 0;
+        FD_ZERO(&rdset);
+        FD_SET(fd, &rdset);
+
+        ret = select(fd + 1, NULL, &rdset, NULL, &timeout);
+        if (ret < 0)
+        {
+            dbg("Connect error, err msg:%s\n", strerror(errno));
+            return -1;
+        }
+        else if (ret == 0)
+        {
+            dbg("Connect timeout, err msg:%s\n", strerror(errno));
+            return -1;
+        }
+        else
+        {
+            ret = getsockopt(fd, SOL_SOCKET, SO_ERROR, (void *)(&optval), &len);
+            if (ret < 0)
+            {
+                dbg("getsockopt(SO_ERROR):%s\n", strerror(errno));
+                return -1;
+            }
+
+            if (optval)
+            {
+               dbg("Client connect error:%s\n", strerror(optval));
+               return -1;
+           }
+        }
+    }
+    else
+    {
+        dbg("Connect to server failed\n");
+        return -1;
+    }
+
+    return 0;
+}
 
 int connect_server(const char *ip, int port)
 {
@@ -35,10 +138,28 @@ int connect_server(const char *ip, int port)
     srv.sin_addr.s_addr = inet_addr(ip);
     srv.sin_port = htons(port);
 
-    ret = connect(g_client.fd, (struct sockaddr*)&srv, sizeof(srv));
+    ret = set_socket_nonblock(g_client.fd);
     if (ret < 0)
     {
-        dbg("connect to server failed\n");
+        close(g_client.fd);
+        return -1;
+    }
+
+    ret = connect(g_client.fd, (struct sockaddr*)&srv, sizeof(srv));
+    if (ret != 0)
+    {
+        ret = check_connect_timeout(g_client.fd);
+        if (ret < 0)
+        {
+            close(g_client.fd);
+            return -1;
+        }
+    }
+
+    ret = set_socket_block(g_client.fd);
+    if (ret < 0)
+    {
+        close(g_client.fd);
         return -1;
     }
 
@@ -108,7 +229,13 @@ int main(int argc, char **argv)
     }
 
     g_client.fd = g_client.create_socket();
-    g_client.connect_srv("127.0.0.1", 6666);
+    ret = g_client.connect_srv("127.0.0.1", 6666);
+    if (ret < 0)
+    {
+        dbg("connect server failed\n");
+        return -1;
+    }
+
     for (i = 0; i < 100; i++)
     {
         g_client.send_to_srv(msg, sizeof(msg)); 
