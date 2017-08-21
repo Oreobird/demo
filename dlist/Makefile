@@ -1,13 +1,7 @@
-obj=dlist
-CC=gcc #no -O
+CC=gcc
 
-CFLAGS+=-maps-frame -rdynamic
-LDFLAGS:=-ldl
-
-all: $(obj)
-
-%.o:%.c
-	$(CC) -c $(CFLAGS) $(LDFLAGS) $< -o $@	
+all: 
+	$(CC) -g dlist.c main.c -o demo
 
 clean:
-	rm -rf *.o $(obj)
+	rm -rf *.o demo
