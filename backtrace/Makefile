@@ -1,7 +1,7 @@
 obj=bt_arm
 CC=gcc #no -O
 
-CFLAGS+=-maps-frame -rdynamic
+CFLAGS+=-mapcs-frame -rdynamic
 LDFLAGS:=-ldl
 
 all: $(obj)
