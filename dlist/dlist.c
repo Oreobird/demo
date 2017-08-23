@@ -45,25 +45,6 @@ dlist_t *dlist_create(void)
     return thiz;
 }
 
-void dlist_destroy(dlist_t *thiz)
-{
-    dlist_node_t *node = NULL;
-    dlist_node_t *next = NULL;
-    
-    if (thiz != NULL)
-    {
-        node = thiz->first;
-        while (next != NULL)
-        {
-            next = node->next;
-            dlist_node_destroy(node);
-            node = next;
-        }
-    }
-
-    return;
-}
-
 static dlist_node_t *dlist_get_node(dlist_t *thiz, int index, int fail_return_last)
 {
     dlist_node_t *node = thiz->first;
@@ -194,4 +175,22 @@ int dlist_append(dlist_t *thiz, void *data)
 int dlist_prepend(dlist_t *thiz, void *data)
 {
     return dlist_insert(thiz, 0, data);
+}
+
+void dlist_destroy(dlist_t *thiz)
+{
+    dlist_node_t *iter = thiz->first;
+    dlist_node_t *next = NULL;
+    
+    while (iter != NULL)
+    {
+        next = iter->next;
+        dlist_node_destroy(iter);
+        iter = next;
+    }
+
+    thiz->first = NULL;
+    free(thiz);
+
+    return;
 }
