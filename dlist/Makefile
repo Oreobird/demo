@@ -1,7 +1,16 @@
+SRC:=$(wildcard *.c)
+OBJ:=$(patsubst %.c, %.o, $(notdir ${SRC}))
+BIN:=test
+
 CC=gcc
 
-all: 
-	$(CC) -g dlist.c main.c -o demo
+all: $(BIN) 
 
+$(BIN):$(OBJ)
+
+%.o:%.c
+	$(CC) -c $< -o $@
+
+.PHONY:clean
 clean:
-	rm -rf *.o demo
+	rm -rf *.o $(BIN)
