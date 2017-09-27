@@ -8,7 +8,9 @@ cli_src:=client.c
 com_src:=$(filter-out $(srv_src) $(cli_src), $(wildcard *.c))
 com_obj:=$(patsubst %.c,%.o, $(notdir ${com_src}))
 
-CFLAGS+=-DTEST_SELECT_SRV
+#CFLAGS+=-DTEST_SELECT
+CFLAGS+=-DTEST_EPOLL
+CFLAGS+=-W -Wall -Werror
 
 all: $(SRV) $(CLI)
 

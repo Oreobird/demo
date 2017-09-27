@@ -69,7 +69,6 @@ static int srv_select_setup(abs_srv_t *thiz)
     privinfo_t *priv = NULL;
     struct sockaddr_in addr;
     int ret = -1;
-	int i;
 
     priv = (privinfo_t *)thiz->priv;
     if (priv == NULL)
@@ -125,6 +124,7 @@ static int handle_connect(privinfo_t *priv, fd_set rfds)
             }
         }
     }
+    return 0;
 }
 
 static int handle_data(privinfo_t *priv, fd_set rfds, char *buf, int len)
@@ -155,7 +155,6 @@ static int srv_select_loop(abs_srv_t *thiz)
 {
     privinfo_t *priv = NULL;
     fd_set rfds;
-    fd_set wfds;
     char buf[BUFF_SIZE] = {0};
     struct timeval timeout;
     int i = 0;
@@ -199,7 +198,7 @@ static int srv_select_loop(abs_srv_t *thiz)
         handle_connect(priv, rfds);
         handle_data(priv, rfds, buf, sizeof(buf));
     }
-
+    return 0;
 }
 
 abs_srv_t *srv_select_create(const char *ip, int port)

@@ -185,7 +185,6 @@ void close_connect(void)
 
 int create_socket(void)
 {
-   struct sockaddr_in addr;
    int fd = -1;
 
    fd = socket(AF_INET, SOCK_STREAM, IPPROTO_IP);
@@ -220,6 +219,9 @@ int main(int argc, char **argv)
     int ret = -1;
     int i = 0; 
     char msg[BUFF_SIZE] = {"Hello I am client"};
+
+    (void)argc;
+    (void)argv;
     
     ret = init_client(&g_client);
     if (ret < 0)
@@ -238,8 +240,9 @@ int main(int argc, char **argv)
 
     for (i = 0; i < 100; i++)
     {
-        g_client.send_to_srv(msg, sizeof(msg)); 
-        sleep(1);
+        g_client.send_to_srv(msg, strlen(msg)); 
+        dbg("send msg:%s\n", msg);
+        sleep(2);
     }
     g_client.close_connect();
     return 0;
