@@ -217,7 +217,7 @@ static int epoll_read(int epollfd, int clifd, char *buf, int len)
         buf[data_len] = '\0';
         dbg("recv data: %s\n", buf);
 
-        modify_event(epollfd, clifd, EPOLLOUT | EPOLLET);
+        //modify_event(epollfd, clifd, EPOLLOUT | EPOLLET); // echo server
     }
 
     return 0;
