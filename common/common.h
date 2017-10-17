@@ -32,4 +32,9 @@ typedef unsigned long long uint64_t;
 
 #define SIZEOF(x)   (sizeof(x) / sizeof((a)[0]))
 
+#define SAFE_FREE(p)   do{if((p) != NULL){free(p);p=NULL;}}while(0)
+
+#define MIN(a, b)   (((a) < (b)) ? (a) : (b))
+#define MAX(a, b)   (((a) > (b)) ? (a) : (b))
+
 #endif
