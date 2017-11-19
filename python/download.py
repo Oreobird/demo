@@ -4,6 +4,9 @@
 import os
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.by import By
 import time
 
 
@@ -103,33 +106,33 @@ class Download:
             driver = webdriver.Chrome()
             for i in range(url_num):
                 driver.get(self.wanpan_url[i])
-                time.sleep(5)
+                locator = (By.ID, 'rpb0W5J')
                 try:
+                    WebDriverWait(driver, 20, 0.5).until(EC.presence_of_element_located(locator))
                     item = driver.find_element_by_id('rpb0W5J')
-                    if item:
-                        item.send_keys(self.wanpan_pwd[i])
-                        time.sleep(2)
-                        item.send_keys(Keys.RETURN)
-                        assert "No results found." not in driver.page_source
-                    time.sleep(3)
-                    dl = driver.find_element_by_xpath('//*[@id="layoutMain"]/div[1]/div[1]/div/div[2]/div/div/div[2]/a[2]')
-                    if dl:
-                        dl.click()
-                        time.sleep(5)
-                        dl_link = driver.find_element_by_id('_disk_id_2')
-                        if dl_link:
-                            dl_link.click()
-                            time.sleep(5)
+                    item.send_keys(self.wanpan_pwd[i])
+                    time.sleep(2)
+                    item.send_keys(Keys.RETURN)
+                    assert "No results found." not in driver.page_source
 
+                    locator = (By.XPATH, '//*[@id="layoutMain"]/div[1]/div[1]/div/div[2]/div/div/div[2]/a[2]')
+                    WebDriverWait(driver, 20, 0.5).until(EC.presence_of_element_located(locator))
+                    dl = driver.find_element_by_xpath('//*[@id="layoutMain"]/div[1]/div[1]/div/div[2]/div/div/div[2]/a[2]')
+                    dl.click()
+
+                    locator = (By.ID, '_disk_id_2')
+                    WebDriverWait(driver, 20, 0.5).until(EC.presence_of_element_located(locator))
+                    dl_link = driver.find_element_by_id('_disk_id_2')
+                    dl_link.click()
+                    time.sleep(5)
+                finally:
                     driver.execute_script("window.open('','_blank');")
                     time.sleep(2)
                     tabs = driver.window_handles
                     print len(tabs)
                     # driver.switch_to().window() cause error: SwitchTo instance has no __call__ method
                     driver.switch_to.window(tabs[len(tabs) - 1])
-                except RuntimeError:
-                    print "dl error."
-            time.sleep(20)
+                    time.sleep(3)
         else:
             print "No url found."
 
