@@ -11,13 +11,36 @@ import time
 
 
 class Download:
-    def __init__(self, src_dir=''):
+    def __init__(self, src_dir='', rar_urls=[]):
         self.src = src_dir
         self.dst = []
         self.wanpan_url = []
         self.wanpan_pwd = []
         self.pwd_code = ['1024', '204601']
+        self.rar_url = rar_urls
 
+    def rarfile_get(self):
+        rar_url_num = len(self.rar_url)
+        if rar_url_num > 0:
+            driver = webdriver.Chrome()
+            for i in range(rar_url_num):
+                driver.get(self.rar_url[i])
+                locator = (By.XPATH, '//*[@id="down_link"]/a[1]')
+                WebDriverWait(driver, 20, 0.5).until(EC.presence_of_element_located(locator))
+                item = driver.find_element_by_xpath('//*[@id="down_link"]/a[1]')
+                item.click()
+
+                tabs = driver.window_handles
+                # driver.switch_to().window() cause error: SwitchTo instance has no __call__ method
+                driver.switch_to.window(tabs[len(tabs) - 1])
+                time.sleep(2)
+
+                locator = (By.XPATH, '//*[@id="down_link"]/a[1]')
+                WebDriverWait(driver, 20, 1).until(EC.presence_of_element_located(locator))
+                item = driver.find_element_by_xpath('//*[@id="down_link"]/a[1]')
+                item.click()
+
+            time.sleep(20)
     def extract_files(self, pwd, file_path, dst):
         if not os.path.exists(dst):
             os.mkdir(dst)
@@ -138,7 +161,8 @@ class Download:
 
 
 if __name__ == '__main__':
-    dl_obj = Download('F:\\test')
-    dl_obj.extract_all_rar()
-    dl_obj.parse_dl_info()
-    dl_obj.wanpan_dl()
+    dl_obj = Download('F:\\test', ['http://www.777pan.cc/file-406077.html'])
+    dl_obj.rarfile_get()
+    #dl_obj.extract_all_rar()
+    #dl_obj.parse_dl_info()
+    #dl_obj.wanpan_dl()
