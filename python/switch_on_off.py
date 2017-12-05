@@ -1,27 +1,19 @@
 #!/bin/env python
 # -*- coding:utf-8 -*-
 
-import wx
 import re
-
-# coding=utf-8
 import json
-import socket, errno
-import thread
+import socket
+import errno
 import threading
-# from wx._windows_ import Frame_SetMenuBar
 import wx
-
 import datetime
 import time
 from matplotlib.figure import Figure
-import matplotlib.font_manager as font_mgmt
-import numpy as np
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as FigureCanvas
-import matplotlib.pyplot as plt
 
-TIMER_ID = wx.NewId()
-TOTAL_SEND = 30
+TOTAL_SEND = 3000
+MAX_DELTA = 1.0
 onoff_cmd = '''{"method":"dm_set_zigbee_bulb",
 "params":{
 "attribute":{"need_confirm":true,"mode":"off"},
@@ -196,7 +188,7 @@ class TxThread(threading.Thread):
         print("Tx Thread Run...\n")
 
         #    wx.CallAfter(self.window.RxMsgUpdate, "rx thread running")
-        while self.stop_flag == 0 or count <= TOTAL_SEND:
+        while self.stop_flag == 0 and count <= TOTAL_SEND:
             print("Tx Thread Run loop...\n")
             # print self.str1
 
@@ -251,6 +243,7 @@ class TxThread(threading.Thread):
 
             self.switch_on_flag = 1 - self.switch_on_flag
             count = count + 1
+            print count
             time.sleep(self.delay_ms * 0.001)
 
 
@@ -296,12 +289,36 @@ class MyFrame(wx.Frame):
         self.canvas1 = FigureCanvas(self.fig_container1, wx.ID_ANY, self.fig1)
         self.ax1 = self.fig1.add_subplot(111)
         self.ax1.set_autoscale_on(False)
-        self.ax1.set(xlim=[0, TOTAL_SEND], ylim=[0, 2.0])
+        self.ax1.set(xlim=[0, TOTAL_SEND], ylim=[0, MAX_DELTA])
         self.ax1.grid(True)
-        self.data = [None] * TOTAL_SEND
-        self.l_data, = self.ax1.plot(range(TOTAL_SEND), self.data, label='Data %')
+        self.data1 = [0] * TOTAL_SEND
+        self.l_data1, = self.ax1.plot(range(TOTAL_SEND), self.data1)
         self.canvas1.draw()
         self.bg1 = self.canvas1.copy_from_bbox(self.ax1.bbox)
+
+        self.fig_container2 = wx.TextCtrl(panel, -1, "", pos=(420, 300), size=(400, 230), style=wx.TE_MULTILINE | wx.TE_RICH2)
+        self.fig2 = Figure((4, 2), 100)
+        self.canvas2 = FigureCanvas(self.fig_container2, wx.ID_ANY, self.fig2)
+        self.ax2 = self.fig2.add_subplot(111)
+        self.ax2.set_autoscale_on(False)
+        self.ax2.set(xlim=[0, TOTAL_SEND], ylim=[0, MAX_DELTA])
+        self.ax2.grid(True)
+        self.data2 = [0] * TOTAL_SEND
+        self.l_data2, = self.ax2.plot(range(TOTAL_SEND), self.data2)
+        self.canvas2.draw()
+        self.bg2 = self.canvas2.copy_from_bbox(self.ax2.bbox)
+
+        self.fig_container3 = wx.TextCtrl(panel, -1, "", pos=(840, 300), size=(400, 230), style=wx.TE_MULTILINE | wx.TE_RICH2)
+        self.fig3 = Figure((4, 2), 100)
+        self.canvas3 = FigureCanvas(self.fig_container3, wx.ID_ANY, self.fig3)
+        self.ax3 = self.fig3.add_subplot(111)
+        self.ax3.set_autoscale_on(False)
+        self.ax3.set(xlim=[0, TOTAL_SEND], ylim=[0, MAX_DELTA])
+        self.ax3.grid(True)
+        self.data3 = [0] * TOTAL_SEND
+        self.l_data3, = self.ax3.plot(range(TOTAL_SEND), self.data3)
+        self.canvas3.draw()
+        self.bg3 = self.canvas3.copy_from_bbox(self.ax3.bbox)
 
         self.infoTxt = wx.TextCtrl(panel, -1, "", pos=(10, 540), size=(1230, 300), style=wx.TE_MULTILINE | wx.TE_RICH2)
 
@@ -312,9 +329,9 @@ class MyFrame(wx.Frame):
         self.jsBuilder = cmdBuilder()
         self.mysock = MySocket()
 
-        self.y = []
-        self.x = []
-        self.a = 0.0
+        self.index1 = 0
+        self.index2 = 0
+        self.index3 = 0
 
     def OnClose(self, event):
         self.r.stop()
@@ -375,20 +392,6 @@ class MyFrame(wx.Frame):
             self.msgTxt1.SetInsertionPointEnd()
             self.pre_tx_ts1 = now
 
-            self.x.append(self.a)
-            self.y.append(self.a)
-            temp = self.a
-            print self.data
-            self.data = self.data[1:] + [temp]
-            print self.data
-            self.canvas1.restore_region(self.bg1)
-            # update the plot
-            self.l_data.set_ydata(self.data)
-            # just draw the "animated" objects
-            self.ax1.draw_artist(self.l_data)
-            self.canvas1.blit(self.ax1.bbox)
-            self.a = self.a + 0.01
-
         if dev_id == 2:
             if len(self.msgTxt2.GetValue()) > 16000:
                 self.msgTxt2.SetValue(" ")
@@ -431,10 +434,8 @@ class MyFrame(wx.Frame):
                 self.btnTst.Enable()
         '''
 
-
     def RxMsgUpdate(self, msg_str='', dev_id=0):
         now = datetime.datetime.now()
-        delta1 = []
 
         count = '=========RX msg count:%d=======\n' % msg_str.count('\n')
         self.infoTxt.AppendText(count)
@@ -463,12 +464,17 @@ class MyFrame(wx.Frame):
                         self.msgTxt1.AppendText("\r\n")
                         self.msgTxt1.SetInsertionPointEnd()
 
-                        span1 = now - self.pre_tx_ts1
+                        span = now - self.pre_tx_ts1
                         if len(self.msgTxt1.GetValue()) > 16000:
                             self.msgTxt1.SetValue("")
 
-                        self.msgTxt1.AppendText("----delta:%s \r\n" % (str(span1)))
-                        delta1.append(span1)
+                        self.msgTxt1.AppendText("----delta:%s \r\n" % (str(span)))
+                        self.data1[self.index1] = float(span.microseconds) / 1000000
+                        self.canvas1.restore_region(self.bg1)
+                        self.l_data1.set_ydata(self.data1)
+                        self.ax1.draw_artist(self.l_data1)
+                        self.canvas1.blit(self.ax1.bbox)
+                        self.index1 += 1
 
                     if obj['content']['params']['content']['result']['device_uuid'].find(self.txtUUID2.GetValue()) != -1:
                         self.msgTxt2.AppendText("RX %d:%d:%d %d \n" % (now.hour, now.minute, now.second, now.microsecond))
@@ -479,6 +485,12 @@ class MyFrame(wx.Frame):
                         if len(self.msgTxt2.GetValue()) > 16000:
                             self.msgTxt2.SetValue("")
                         self.msgTxt2.AppendText("----delta:%s \r\n" % (str(span)))
+                        self.data2[self.index2] = float(span.microseconds) / 1000000
+                        self.canvas2.restore_region(self.bg2)
+                        self.l_data2.set_ydata(self.data2)
+                        self.ax2.draw_artist(self.l_data2)
+                        self.canvas2.blit(self.ax2.bbox)
+                        self.index2 += 1
 
                     if obj['content']['params']['content']['result']['device_uuid'].find(self.txtUUID3.GetValue()) != -1:
                         self.msgTxt3.AppendText("RX %d:%d:%d %d \n" % (now.hour, now.minute, now.second, now.microsecond))
@@ -490,10 +502,15 @@ class MyFrame(wx.Frame):
                         if len(self.msgTxt3.GetValue()) > 16000:
                             self.msgTxt3.SetValue("")
                         self.msgTxt3.AppendText("----delta:%s \r\n" % (str(span)))
+                        self.data3[self.index3] = float(span.microseconds) / 1000000
+                        self.canvas3.restore_region(self.bg3)
+                        self.l_data3.set_ydata(self.data3)
+                        self.ax3.draw_artist(self.l_data3)
+                        self.canvas3.blit(self.ax3.bbox)
+                        self.index3 += 1
 
                 except:
                     self.infoTxt.AppendText("Not our expect msg.\n")
-
 
 if __name__ == '__main__':
     # app = wx.PySimpleApp()
