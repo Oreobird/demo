@@ -17,7 +17,7 @@ class Download:
         self.dst = []
         self.wanpan_url = []
         self.wanpan_pwd = []
-        self.pwd_code = ['1024', '204601']
+        self.pwd_code = ['1024', '204601', '20171024', '333', '1412']
         self.rar_url = rar_urls
         self.screenshot = 'E:\\test\\screenshot.png'
         self.imgcode_src = 'F:\\python\\'
@@ -25,6 +25,7 @@ class Download:
     def img_process(self, img_path = ''):
         img = cv2.imread(img_path, 0)
         cv2.imshow('imgcode', img)
+
         blur = cv2.GaussianBlur(img, (5, 5), 0)
         ret, bin_img = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
         cv2.imshow('bin_img', bin_img)
@@ -85,6 +86,7 @@ class Download:
                     time.sleep(3)
 
             time.sleep(20)
+
     def extract_files(self, pwd, file_path, dst):
         if not os.path.exists(dst):
             os.mkdir(dst)
@@ -173,10 +175,10 @@ class Download:
             driver = webdriver.Chrome()
             for i in range(url_num):
                 driver.get(self.wanpan_url[i])
-                locator = (By.ID, 'rpb0W5J')
+                locator = (By.ID, 'cxdepW')
                 try:
                     WebDriverWait(driver, 20, 0.5).until(EC.presence_of_element_located(locator))
-                    item = driver.find_element_by_id('rpb0W5J')
+                    item = driver.find_element_by_id('cxdepW')
                     item.send_keys(self.wanpan_pwd[i])
                     time.sleep(2)
                     item.send_keys(Keys.RETURN)
@@ -190,8 +192,11 @@ class Download:
                     locator = (By.ID, '_disk_id_2')
                     WebDriverWait(driver, 20, 0.5).until(EC.presence_of_element_located(locator))
                     dl_link = driver.find_element_by_id('_disk_id_2')
-                    dl_link.click()
+                    if dl_link.is_displayed():
+                        dl_link.click()
                     time.sleep(5)
+                except RuntimeError:
+                    print "error"
                 finally:
                     driver.execute_script("window.open('','_blank');")
                     time.sleep(2)
@@ -205,9 +210,9 @@ class Download:
 
 
 if __name__ == '__main__':
-    dl_obj = Download('F:\\test', ['http://www.777pan.cc/file-406077.html'])
+    dl_obj = Download('F:\\test', ['http://www.777pan.cc/file-406077.html', 'http://www.777pan.cc/file-419608.html'])
     #dl_obj.imgcode_get()
-    dl_obj.sample_get()
-    #dl_obj.extract_all_rar()
-    #dl_obj.parse_dl_info()
-    #dl_obj.wanpan_dl()
+    #dl_obj.sample_get()
+    dl_obj.extract_all_rar()
+    dl_obj.parse_dl_info()
+    dl_obj.wanpan_dl()
