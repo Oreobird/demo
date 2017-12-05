@@ -210,7 +210,7 @@ class Download:
 
 
 if __name__ == '__main__':
-    dl_obj = Download('F:\\test', ['http://www.777pan.cc/file-406077.html', 'http://www.777pan.cc/file-419608.html'])
+    dl_obj = Download('F:\\test', ['http://www.777pan.cc/file-406077.html', 'http://www.777pan.cc/file-419608.html', 'http://www.777pan.cc/file-425289.html', 'http://www.777pan.cc/file-423919.html'])
     #dl_obj.imgcode_get()
     #dl_obj.sample_get()
     dl_obj.extract_all_rar()

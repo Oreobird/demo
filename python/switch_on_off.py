@@ -246,6 +246,28 @@ class TxThread(threading.Thread):
             print count
             time.sleep(self.delay_ms * 0.001)
 
+class MyFigure():
+    def __init__(self, panel, ipos, isize=(400, 230)):
+        self.fig_container = wx.TextCtrl(panel, -1, "", pos=ipos, size=isize, style=wx.TE_MULTILINE | wx.TE_RICH2)
+        self.fig = Figure((4, 2), 100)
+        self.canvas = FigureCanvas(self.fig_container, wx.ID_ANY, self.fig)
+        self.ax = self.fig.add_subplot(111)
+        self.ax.set_autoscale_on(False)
+        self.ax.set(xlim=[0, TOTAL_SEND], ylim=[0, MAX_DELTA])
+        self.ax.grid(True)
+        self.data = [0] * TOTAL_SEND
+        self.plt_data, = self.ax.plot(range(TOTAL_SEND), self.data)
+        self.canvas.draw()
+        self.bg = self.canvas.copy_from_bbox(self.ax.bbox)
+        self.index = 0
+
+    def update(self, idata):
+        self.data[self.index] = float(idata.microseconds) / 1000000
+        self.canvas.restore_region(self.bg)
+        self.plt_data.set_ydata(self.data)
+        self.ax.draw_artist(self.plt_data)
+        self.canvas.blit(self.ax.bbox)
+        self.index += 1
 
 class MyFrame(wx.Frame):
 
@@ -284,41 +306,9 @@ class MyFrame(wx.Frame):
         self.msgTxt2 = wx.TextCtrl(panel, -1, "", pos=(420, 90), size=(400, 200), style=wx.TE_MULTILINE | wx.TE_RICH2)
         self.msgTxt3 = wx.TextCtrl(panel, -1, "", pos=(840, 90), size=(400, 200), style=wx.TE_MULTILINE | wx.TE_RICH2)
 
-        self.fig_container1 = wx.TextCtrl(panel, -1, "", pos=(10, 300), size=(400, 230), style=wx.TE_MULTILINE | wx.TE_RICH2)
-        self.fig1 = Figure((4, 2), 100)
-        self.canvas1 = FigureCanvas(self.fig_container1, wx.ID_ANY, self.fig1)
-        self.ax1 = self.fig1.add_subplot(111)
-        self.ax1.set_autoscale_on(False)
-        self.ax1.set(xlim=[0, TOTAL_SEND], ylim=[0, MAX_DELTA])
-        self.ax1.grid(True)
-        self.data1 = [0] * TOTAL_SEND
-        self.l_data1, = self.ax1.plot(range(TOTAL_SEND), self.data1)
-        self.canvas1.draw()
-        self.bg1 = self.canvas1.copy_from_bbox(self.ax1.bbox)
-
-        self.fig_container2 = wx.TextCtrl(panel, -1, "", pos=(420, 300), size=(400, 230), style=wx.TE_MULTILINE | wx.TE_RICH2)
-        self.fig2 = Figure((4, 2), 100)
-        self.canvas2 = FigureCanvas(self.fig_container2, wx.ID_ANY, self.fig2)
-        self.ax2 = self.fig2.add_subplot(111)
-        self.ax2.set_autoscale_on(False)
-        self.ax2.set(xlim=[0, TOTAL_SEND], ylim=[0, MAX_DELTA])
-        self.ax2.grid(True)
-        self.data2 = [0] * TOTAL_SEND
-        self.l_data2, = self.ax2.plot(range(TOTAL_SEND), self.data2)
-        self.canvas2.draw()
-        self.bg2 = self.canvas2.copy_from_bbox(self.ax2.bbox)
-
-        self.fig_container3 = wx.TextCtrl(panel, -1, "", pos=(840, 300), size=(400, 230), style=wx.TE_MULTILINE | wx.TE_RICH2)
-        self.fig3 = Figure((4, 2), 100)
-        self.canvas3 = FigureCanvas(self.fig_container3, wx.ID_ANY, self.fig3)
-        self.ax3 = self.fig3.add_subplot(111)
-        self.ax3.set_autoscale_on(False)
-        self.ax3.set(xlim=[0, TOTAL_SEND], ylim=[0, MAX_DELTA])
-        self.ax3.grid(True)
-        self.data3 = [0] * TOTAL_SEND
-        self.l_data3, = self.ax3.plot(range(TOTAL_SEND), self.data3)
-        self.canvas3.draw()
-        self.bg3 = self.canvas3.copy_from_bbox(self.ax3.bbox)
+        self.fig1 = MyFigure(panel, (10, 300), (400, 230))
+        self.fig2 = MyFigure(panel, (420, 300), (400, 230))
+        self.fig3 = MyFigure(panel, (840, 300), (400, 230))
 
         self.infoTxt = wx.TextCtrl(panel, -1, "", pos=(10, 540), size=(1230, 300), style=wx.TE_MULTILINE | wx.TE_RICH2)
 
@@ -328,10 +318,6 @@ class MyFrame(wx.Frame):
         self.cmd_str3 = ""
         self.jsBuilder = cmdBuilder()
         self.mysock = MySocket()
-
-        self.index1 = 0
-        self.index2 = 0
-        self.index3 = 0
 
     def OnClose(self, event):
         self.r.stop()
@@ -469,12 +455,7 @@ class MyFrame(wx.Frame):
                             self.msgTxt1.SetValue("")
 
                         self.msgTxt1.AppendText("----delta:%s \r\n" % (str(span)))
-                        self.data1[self.index1] = float(span.microseconds) / 1000000
-                        self.canvas1.restore_region(self.bg1)
-                        self.l_data1.set_ydata(self.data1)
-                        self.ax1.draw_artist(self.l_data1)
-                        self.canvas1.blit(self.ax1.bbox)
-                        self.index1 += 1
+                        self.fig1.update(span)
 
                     if obj['content']['params']['content']['result']['device_uuid'].find(self.txtUUID2.GetValue()) != -1:
                         self.msgTxt2.AppendText("RX %d:%d:%d %d \n" % (now.hour, now.minute, now.second, now.microsecond))
@@ -485,12 +466,7 @@ class MyFrame(wx.Frame):
                         if len(self.msgTxt2.GetValue()) > 16000:
                             self.msgTxt2.SetValue("")
                         self.msgTxt2.AppendText("----delta:%s \r\n" % (str(span)))
-                        self.data2[self.index2] = float(span.microseconds) / 1000000
-                        self.canvas2.restore_region(self.bg2)
-                        self.l_data2.set_ydata(self.data2)
-                        self.ax2.draw_artist(self.l_data2)
-                        self.canvas2.blit(self.ax2.bbox)
-                        self.index2 += 1
+                        self.fig2.update(span)
 
                     if obj['content']['params']['content']['result']['device_uuid'].find(self.txtUUID3.GetValue()) != -1:
                         self.msgTxt3.AppendText("RX %d:%d:%d %d \n" % (now.hour, now.minute, now.second, now.microsecond))
@@ -502,12 +478,7 @@ class MyFrame(wx.Frame):
                         if len(self.msgTxt3.GetValue()) > 16000:
                             self.msgTxt3.SetValue("")
                         self.msgTxt3.AppendText("----delta:%s \r\n" % (str(span)))
-                        self.data3[self.index3] = float(span.microseconds) / 1000000
-                        self.canvas3.restore_region(self.bg3)
-                        self.l_data3.set_ydata(self.data3)
-                        self.ax3.draw_artist(self.l_data3)
-                        self.canvas3.blit(self.ax3.bbox)
-                        self.index3 += 1
+                        self.fig3.update(span)
 
                 except:
                     self.infoTxt.AppendText("Not our expect msg.\n")
