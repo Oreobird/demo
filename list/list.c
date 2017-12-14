@@ -14,7 +14,7 @@ static void print_int(void *data)
 int main(int argc, char **argv)
 {
     list_t *list = NULL;
-    int i = 0, n = 100;
+    int i = 0, n = 5;
     int ret = -1;
 
 #if defined(TEST_DOUBLE_LIST)

@@ -99,8 +99,6 @@ int slist_insert(list_t *thiz, int index, void *data)
 
     if (index < slist_length(thiz))
     {
-        slist_node_t *temp = cursor->next;
-
         if (cursor == priv->first)
         {
             priv->first = node;
@@ -109,7 +107,7 @@ int slist_insert(list_t *thiz, int index, void *data)
         {
             cursor->next = node;
         }
-        node->next = temp;
+        node->next = cursor;
     }
     else
     {
@@ -180,7 +178,7 @@ void slist_reverse(list_t *thiz)
     if (s == NULL)
         return;
 
-    while (s->next != NULL)
+    while (s != NULL)
     {
         t = s->next;
         s->next = r;
