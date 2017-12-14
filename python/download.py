@@ -10,7 +10,8 @@ from selenium.webdriver.common.by import By
 import time
 from PIL import Image
 import cv2
-
+import numpy as np
+#ttsis2017
 class Download:
     def __init__(self, src_dir='', rar_urls=[]):
         self.src = src_dir
@@ -20,25 +21,47 @@ class Download:
         self.pwd_code = ['1024', '204601', '20171024', '333', '1412']
         self.rar_url = rar_urls
         self.screenshot = 'E:\\test\\screenshot.png'
-        self.imgcode_src = 'F:\\python\\'
+        self.imgcode_src = 'E:\\test\\'
 
-    def img_process(self, img_path = ''):
-        img = cv2.imread(img_path, 0)
-        cv2.imshow('imgcode', img)
+    def img_process(self, img_path = '', filename = 'default'):
+        img = cv2.imread(img_path)
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        #cv2.imshow('%s'%img_path, img)
 
-        blur = cv2.GaussianBlur(img, (5, 5), 0)
-        ret, bin_img = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
-        cv2.imshow('bin_img', bin_img)
-        cv2.waitKey(0)
+        #blur = cv2.GaussianBlur(gray, (5, 5), 0)
+        ret, bin_img = cv2.threshold(gray, 125, 255, cv2.THRESH_BINARY)
+        #cv2.imshow('%s bin_img'%img_path, bin_img)
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5))
+        bin_img = cv2.morphologyEx(bin_img, cv2.MORPH_CLOSE, kernel)
+        #cv2.imshow("%s close"%img_path, bin_img)
+        bin_img, contours, hierarchy = cv2.findContours(bin_img, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)
+        print len(contours)
+
+        idx = 0
+        areas = np.zeros(len(contours))
+        for con in contours:
+            areas[idx] = cv2.contourArea(con)
+            idx += 1
+        areas_s = cv2.sortIdx(areas, cv2.SORT_DESCENDING | cv2.SORT_EVERY_COLUMN)
+        for idx in areas_s:
+            if areas[idx] < 200:
+                break
+            poly_img = np.zeros(bin_img.shape, dtype = np.uint8)
+            cv2.drawContours(poly_img, contours, idx, [255, 255, 255], -1)
+            poly_img = poly_img & bin_img
+            #cv2.imshow('%scontour %d' % (img_path, idx), poly_img)
+            cv2.imwrite('%s_%d.jpg'%(img_path.split('.')[0],idx), poly_img)
 
     def sample_get(self):
         for root, dirs, files in os.walk(self.imgcode_src):
+
             for f in files:
                 (filename, ext) = os.path.splitext(f)
                 if ext == '.jpg':
                     img_path = os.path.join(root, f)
                     print img_path
-                    self.img_process(img_path)
+                    self.img_process(img_path, filename)
+        cv2.waitKey(0)
 
     def imgcode_get(self):
         rar_url_num = len(self.rar_url)
@@ -210,9 +233,9 @@ class Download:
 
 
 if __name__ == '__main__':
-    dl_obj = Download('F:\\test', ['http://www.777pan.cc/file-406077.html', 'http://www.777pan.cc/file-419608.html', 'http://www.777pan.cc/file-425289.html', 'http://www.777pan.cc/file-423919.html'])
+    dl_obj = Download('F:\\test', ['http://www.777pan.cc/file-429360.html','http://www.777pan.cc/file-429847.html', 'http://www.777pan.cc/file-406077.html', 'http://www.777pan.cc/file-419608.html', 'http://www.777pan.cc/file-425289.html', 'http://www.777pan.cc/file-423919.html'])
     #dl_obj.imgcode_get()
-    #dl_obj.sample_get()
-    dl_obj.extract_all_rar()
-    dl_obj.parse_dl_info()
-    dl_obj.wanpan_dl()
+    dl_obj.sample_get()
+    #dl_obj.extract_all_rar()
+    #dl_obj.parse_dl_info()
+    #dl_obj.wanpan_dl()
