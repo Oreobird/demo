@@ -102,6 +102,14 @@ typedef enum {
 } HardwareIDType;
 
 typedef void (*relay_handle_fn)(bool on);
+typedef struct relay_info_s
+{
+	unsigned char ctrl_port;
+	unsigned char ctrl_pin;
+	unsigned char ctrl_n_port;
+	unsigned char ctrl_n_pin;
+	relay_handle_fn relay_fn;
+} relay_info_t;
 
 typedef struct btn_ep_s
 {
@@ -115,7 +123,7 @@ typedef struct switch_s
     bool auto_report_enable;
     unsigned char relay_count;
     char modelID[10];
-    relay_handle_fn relay_fn[RELAY_NUM];
+	relay_info_t relay_info[RELAY_NUM];
     btn_ep_t btn_ep_map[RELAY_NUM];
 } switch_handle_tbl_t;
 
@@ -160,33 +168,32 @@ void emberHardwareIDInit(void *data)
     #endif
 }
 
+void RelayEventHandler(int index, bool status, EmberEventControl relay_event)
+{
+	if (index < 0 || index >= RELAY_NUM)
+		return;
+	
+	emberEventControlSetInactive(relay_event);
+    if (status)
+        GPIO_PinOutClear(RELAY_CTRL_PORT(index), RELAY_CTRL_PIN(index));
+    else
+        GPIO_PinOutClear(RELAY_CTRL_N_PORT(index), RELAY_CTRL_N_PIN(index));
+}
+
 void Relay1EventHandler(void)
 {
-    emberEventControlSetInactive(Relay1Event);
-    if (newStatus[ENDPOINT_ONE])
-        GPIO_PinOutClear(BSP_GPIO_SZ1_RELAY_CTRL1_PORT, BSP_GPIO_SZ1_RELAY_CTRL1_PIN);
-    else
-        GPIO_PinOutClear(BSP_GPIO_SZ1_RELAY_CTRL1N_PORT, BSP_GPIO_SZ1_RELAY_CTRL1N_PIN);
+	RelayEventHandler(0, newStatus[ENDPOINT_ONE], Relay1Event);
 }
 
 void Relay2EventHandler(void)
 {
-    emberEventControlSetInactive(Relay2Event);
-    if (newStatus[ENDPOINT_TWO])
-        GPIO_PinOutClear(BSP_GPIO_SZ1_RELAY_CTRL2_PORT, BSP_GPIO_SZ1_RELAY_CTRL2_PIN);
-    else
-        GPIO_PinOutClear(BSP_GPIO_SZ1_RELAY_CTRL2N_PORT, BSP_GPIO_SZ1_RELAY_CTRL2N_PIN);
+	RelayEventHandler(1, newStatus[ENDPOINT_TWO], Relay2Event);
 }
 
 void Relay3EventHandler(void)
 {
-    emberEventControlSetInactive(Relay3Event);
-    if (newStatus[ENDPOINT_THREE])
-        GPIO_PinOutClear(BSP_GPIO_SZ1_RELAY_CTRL3_PORT, BSP_GPIO_SZ1_RELAY_CTRL3_PIN);
-    else
-        GPIO_PinOutClear(BSP_GPIO_SZ1_RELAY_CTRL3N_PORT, BSP_GPIO_SZ1_RELAY_CTRL3N_PIN);
+	RelayEventHandler(2, newStatus[ENDPOINT_THREE], Relay3Event);
 }
-
 
 static void RelayDelayMs(EmberEventControl relay_event)
 {
@@ -221,134 +228,167 @@ static void RelayOff(EmberEventControl relay_event,
     //GPIO_PinOutClear(ctrl_n_port, ctrl_n_pin);
 }
 
-void SZ1Relay1Ctrl(bool on)
+void RelayCtrl(int index, EmberEventControl relay_event)
 {
-    RelayModeOut(BSP_GPIO_SZ1_RELAY_CTRL1_PORT, BSP_GPIO_SZ1_RELAY_CTRL1_PIN,
-                BSP_GPIO_SZ1_RELAY_CTRL1N_PORT, BSP_GPIO_SZ1_RELAY_CTRL1N_PIN);
+	if (index < 0 || index >= RELAY_NUM)
+		return;
+	
+	RelayModeOut(RELAY_CTRL_PORT(index), RELAY_CTRL_PIN(index),
+                 RELAY_CTRL_N_PORT(index), RELAY_CTRL_N_PIN(index));
     if (on)
     {
-        RelayOn(Relay1Event,
-                BSP_GPIO_SZ1_RELAY_CTRL1_PORT, BSP_GPIO_SZ1_RELAY_CTRL1_PIN,
-                BSP_GPIO_SZ1_RELAY_CTRL1N_PORT, BSP_GPIO_SZ1_RELAY_CTRL1N_PIN);
+        RelayOn(relay_event,
+                RELAY_CTRL_PORT(index), RELAY_CTRL_PIN(index),
+                RELAY_CTRL_N_PORT(index), RELAY_CTRL_N_PIN(index));
     }
     else
     {
-        RelayOff(Relay1Event,
-                BSP_GPIO_SZ1_RELAY_CTRL1_PORT, BSP_GPIO_SZ1_RELAY_CTRL1_PIN,
-                BSP_GPIO_SZ1_RELAY_CTRL1N_PORT, BSP_GPIO_SZ1_RELAY_CTRL1N_PIN);
+        RelayOff(relay_event,
+                 RELAY_CTRL_PORT(index), RELAY_CTRL_PIN(index),
+                 RELAY_CTRL_N_PORT(index), RELAY_CTRL_N_PIN(index));
     }
 }
 
-void SZ1Relay2Ctrl(bool on)
+void Relay1Ctrl(bool on)
 {
-    RelayModeOut(BSP_GPIO_SZ1_RELAY_CTRL2_PORT, BSP_GPIO_SZ1_RELAY_CTRL2_PIN,
-                BSP_GPIO_SZ1_RELAY_CTRL2N_PORT, BSP_GPIO_SZ1_RELAY_CTRL2N_PIN);
-    if (on)
-    {
-        RelayOn(Relay2Event,
-                BSP_GPIO_SZ1_RELAY_CTRL2_PORT, BSP_GPIO_SZ1_RELAY_CTRL2_PIN,
-                BSP_GPIO_SZ1_RELAY_CTRL2N_PORT, BSP_GPIO_SZ1_RELAY_CTRL2N_PIN);
-    }
-    else
-    {
-        RelayOff(Relay2Event,
-                BSP_GPIO_SZ1_RELAY_CTRL2_PORT, BSP_GPIO_SZ1_RELAY_CTRL2_PIN,
-                BSP_GPIO_SZ1_RELAY_CTRL2N_PORT, BSP_GPIO_SZ1_RELAY_CTRL2N_PIN);
-    }
+	RelayCtrl(0, Relay1Event);
 }
 
-void SZ1Relay3Ctrl(bool on)
+void Relay2Ctrl(bool on)
 {
-    RelayModeOut(BSP_GPIO_SZ1_RELAY_CTRL3_PORT, BSP_GPIO_SZ1_RELAY_CTRL3_PIN,
-                BSP_GPIO_SZ1_RELAY_CTRL3N_PORT, BSP_GPIO_SZ1_RELAY_CTRL3N_PIN);
-    if (on)
-    {
-        RelayOn(Relay3Event,
-                BSP_GPIO_SZ1_RELAY_CTRL3_PORT, BSP_GPIO_SZ1_RELAY_CTRL3_PIN,
-                BSP_GPIO_SZ1_RELAY_CTRL3N_PORT, BSP_GPIO_SZ1_RELAY_CTRL3N_PIN);
-    }
-    else
-    {
-        RelayOff(Relay3Event,
-                BSP_GPIO_SZ1_RELAY_CTRL3_PORT, BSP_GPIO_SZ1_RELAY_CTRL3_PIN,
-                BSP_GPIO_SZ1_RELAY_CTRL3N_PORT, BSP_GPIO_SZ1_RELAY_CTRL3N_PIN);
-    }
+	RelayCtrl(1, Relay2Event);
 }
 
-void SZ2Relay1Ctrl(bool on)
+void Relay3Ctrl(bool on)
 {
-    RelayModeOut(BSP_GPIO_SZ2_RELAY_CTRL1_PORT,BSP_GPIO_SZ2_RELAY_CTRL1_PIN,
-                BSP_GPIO_SZ2_RELAY_CTRL1N_PORT,BSP_GPIO_SZ2_RELAY_CTRL1N_PIN);
-    if (on)
-    {
-        RelayOn(Relay1Event,
-                BSP_GPIO_SZ2_RELAY_CTRL1_PORT, BSP_GPIO_SZ2_RELAY_CTRL1_PIN,
-                BSP_GPIO_SZ2_RELAY_CTRL1N_PORT, BSP_GPIO_SZ2_RELAY_CTRL1N_PIN);
-    }
-    else
-    {
-        RelayOff(Relay1Event,
-                BSP_GPIO_SZ2_RELAY_CTRL1_PORT, BSP_GPIO_SZ2_RELAY_CTRL1_PIN,
-                BSP_GPIO_SZ2_RELAY_CTRL1N_PORT, BSP_GPIO_SZ2_RELAY_CTRL1N_PIN);
-    }
-}
-
-void SZ2Relay2Ctrl(bool on)
-{
-    RelayModeOut(BSP_GPIO_SZ2_RELAY_CTRL2_PORT, BSP_GPIO_SZ2_RELAY_CTRL2_PIN,
-                BSP_GPIO_SZ2_RELAY_CTRL2N_PORT, BSP_GPIO_SZ2_RELAY_CTRL2N_PIN);
-    if (on)
-    {
-        RelayOn(Relay2Event,
-                BSP_GPIO_SZ2_RELAY_CTRL2_PORT, BSP_GPIO_SZ2_RELAY_CTRL2_PIN,
-                BSP_GPIO_SZ2_RELAY_CTRL2N_PORT, BSP_GPIO_SZ2_RELAY_CTRL2N_PIN);
-    }
-    else
-    {
-        RelayOff(Relay2Event,
-                BSP_GPIO_SZ2_RELAY_CTRL2_PORT, BSP_GPIO_SZ2_RELAY_CTRL2_PIN,
-                BSP_GPIO_SZ2_RELAY_CTRL2N_PORT, BSP_GPIO_SZ2_RELAY_CTRL2N_PIN);
-    }
-}
-
-void SZ2Relay3Ctrl(bool on)
-{
-    RelayModeOut(BSP_GPIO_SZ2_RELAY_CTRL3_PORT, BSP_GPIO_SZ2_RELAY_CTRL3_PIN,
-                BSP_GPIO_SZ2_RELAY_CTRL3N_PORT, BSP_GPIO_SZ2_RELAY_CTRL3N_PIN);
-    if (on)
-    {
-        RelayOn(Relay3Event,
-                BSP_GPIO_SZ2_RELAY_CTRL3_PORT, BSP_GPIO_SZ2_RELAY_CTRL3_PIN,
-                BSP_GPIO_SZ2_RELAY_CTRL3N_PORT, BSP_GPIO_SZ2_RELAY_CTRL3N_PIN);
-    }
-    else
-    {
-        RelayOff(Relay3Event,
-                BSP_GPIO_SZ2_RELAY_CTRL3_PORT, BSP_GPIO_SZ2_RELAY_CTRL3_PIN,
-                BSP_GPIO_SZ2_RELAY_CTRL3N_PORT, BSP_GPIO_SZ2_RELAY_CTRL3N_PIN);
-    }
+	RelayCtrl(2, Relay3Event);
 }
 
 switch_handle_tbl_t g_switch_handle_tbl[] =
 {
-    {SZ101, true, 1, {'B','H','-','S','Z','1','0','1',0,0}, {SZ1Relay1Ctrl, NULL, NULL}, {{BUTTON1, ENDPOINT_ONE}}},
-    {SZ102, true, 2, {'B','H','-','S','Z','1','0','2',0,0}, {SZ1Relay1Ctrl, SZ1Relay2Ctrl, NULL}, {{BUTTON0, ENDPOINT_ONE},{BUTTON2, ENDPOINT_TWO}}},
-    {SZ103, true, 3, {'B','H','-','S','Z','1','0','3',0,0}, {SZ1Relay1Ctrl, SZ1Relay2Ctrl, SZ1Relay3Ctrl}, {{BUTTON0, ENDPOINT_ONE},{BUTTON1, ENDPOINT_TWO},{BUTTON2, ENDPOINT_THREE}}},
+    {
+		.type = SZ101, 
+		.auto_report = true, 
+		.relay_count = 1, 
+		.modelID[10] = {'B','H','-','S','Z','1','0','1',0,0}, 
+		.relay_info[RELAY_NUM] = {{BSP_GPIO_SZ1_RELAY_CTRL1_PORT, BSP_GPIO_SZ1_RELAY_CTRL1_PIN,
+		        				   BSP_GPIO_SZ1_RELAY_CTRL1N_PORT, BSP_GPIO_SZ1_RELAY_CTRL1N_PIN, 
+		        				   Relay1Ctrl}}, 
+		.btn_ep_map[RELAY_NUM] = {{BUTTON1, ENDPOINT_ONE}}
+	},
+    {
+		.type = SZ102, 
+		.auto_report = true, 
+		.relay_count = 2, 
+		.modelID[10] = {'B','H','-','S','Z','1','0','2',0,0}, 
+		.relay_info[RELAY_NUM] = {{BSP_GPIO_SZ1_RELAY_CTRL1_PORT, BSP_GPIO_SZ1_RELAY_CTRL1_PIN,
+		        				   BSP_GPIO_SZ1_RELAY_CTRL1N_PORT, BSP_GPIO_SZ1_RELAY_CTRL1N_PIN, 
+		        				   Relay1Ctrl},
+		        				  {BSP_GPIO_SZ1_RELAY_CTRL2_PORT, BSP_GPIO_SZ1_RELAY_CTRL2_PIN,
+                				   BSP_GPIO_SZ1_RELAY_CTRL2N_PORT, BSP_GPIO_SZ1_RELAY_CTRL2N_PIN,
+                				   Relay2Ctrl}}, 
+		.btn_ep_map[RELAY_NUM] = {{BUTTON0, ENDPOINT_ONE},
+								  {BUTTON2, ENDPOINT_TWO}}
+	},
+    {
+		.type = SZ103, 
+		.auto_report = true, 
+		.relay_count = 3, 
+		.modelID[10] = {'B','H','-','S','Z','1','0','3',0,0}, 
+		.relay_info[RELAY_NUM] = {{BSP_GPIO_SZ1_RELAY_CTRL1_PORT, BSP_GPIO_SZ1_RELAY_CTRL1_PIN,
+		        				   BSP_GPIO_SZ1_RELAY_CTRL1N_PORT, BSP_GPIO_SZ1_RELAY_CTRL1N_PIN, 
+		        				   Relay1Ctrl},
+		        				  {BSP_GPIO_SZ1_RELAY_CTRL2_PORT, BSP_GPIO_SZ1_RELAY_CTRL2_PIN,
+                				   BSP_GPIO_SZ1_RELAY_CTRL2N_PORT, BSP_GPIO_SZ1_RELAY_CTRL2N_PIN,
+                				   Relay2Ctrl}, 
+								  {BSP_GPIO_SZ1_RELAY_CTRL3_PORT, BSP_GPIO_SZ1_RELAY_CTRL3_PIN,
+                				   BSP_GPIO_SZ1_RELAY_CTRL3N_PORT, BSP_GPIO_SZ1_RELAY_CTRL3N_PIN, 
+                				   Relay3Ctrl}}, 
+		.btn_ep_map[RELAY_NUM] = {{BUTTON0, ENDPOINT_ONE},
+								  {BUTTON1, ENDPOINT_TWO},
+								  {BUTTON2, ENDPOINT_THREE}}
+	},
+    {
+		.type = SZ201, 
+		.auto_report = true, 
+		.relay_count = 1, 
+		.modelID[10] = {'B','H','-','S','Z','2','0','1',0,0}, 
+		.relay_info[RELAY_NUM] = {{BSP_GPIO_SZ2_RELAY_CTRL1_PORT, BSP_GPIO_SZ2_RELAY_CTRL1_PIN,
+		        				   BSP_GPIO_SZ2_RELAY_CTRL1N_PORT, BSP_GPIO_SZ2_RELAY_CTRL1N_PIN, 
+		        				   Relay1Ctrl}}, 
+		.btn_ep_map[RELAY_NUM] = {{BUTTON1, ENDPOINT_ONE}}
+	},
+    {
+		.type = SZ202, 
+		.auto_report = true, 
+		.relay_count = 2, 
+		.modelID[10] = {'B','H','-','S','Z','2','0','2',0,0}, 
+		.relay_info[RELAY_NUM] = {{BSP_GPIO_SZ2_RELAY_CTRL1_PORT, BSP_GPIO_SZ2_RELAY_CTRL1_PIN,
+		        				   BSP_GPIO_SZ2_RELAY_CTRL1N_PORT, BSP_GPIO_SZ2_RELAY_CTRL1N_PIN, 
+		        				   Relay1Ctrl},
+		        				  {BSP_GPIO_SZ2_RELAY_CTRL2_PORT, BSP_GPIO_SZ2_RELAY_CTRL2_PIN,
+                				   BSP_GPIO_SZ2_RELAY_CTRL2N_PORT, BSP_GPIO_SZ2_RELAY_CTRL2N_PIN,
+                				   Relay2Ctrl}}, 
+		.btn_ep_map[RELAY_NUM] = {{BUTTON0, ENDPOINT_ONE},
+								  {BUTTON2, ENDPOINT_TWO}}
+	},
+    {
+		.type = SZ203, 
+		.auto_report = true, 
+		.relay_count = 3, 
+		.modelID[10] = {'B','H','-','S','Z','2','0','3',0,0}, 
+		.relay_info[RELAY_NUM] = {{BSP_GPIO_SZ2_RELAY_CTRL1_PORT, BSP_GPIO_SZ2_RELAY_CTRL1_PIN,
+		        				   BSP_GPIO_SZ2_RELAY_CTRL1N_PORT, BSP_GPIO_SZ2_RELAY_CTRL1N_PIN, 
+		        				   Relay1Ctrl},
+		        				  {BSP_GPIO_SZ2_RELAY_CTRL2_PORT, BSP_GPIO_SZ2_RELAY_CTRL2_PIN,
+                				   BSP_GPIO_SZ2_RELAY_CTRL2N_PORT, BSP_GPIO_SZ2_RELAY_CTRL2N_PIN,
+                				   Relay2Ctrl}, 
+								  {BSP_GPIO_SZ2_RELAY_CTRL3_PORT, BSP_GPIO_SZ2_RELAY_CTRL3_PIN,
+                				   BSP_GPIO_SZ2_RELAY_CTRL3N_PORT, BSP_GPIO_SZ2_RELAY_CTRL3N_PIN, 
+                				   Relay3Ctrl}}, 
+		.btn_ep_map[RELAY_NUM] = {{BUTTON0, ENDPOINT_ONE},
+								  {BUTTON1, ENDPOINT_TWO},
+								  {BUTTON2, ENDPOINT_THREE}}
+	},
 
-    {SZ201, true, 1, {'B','H','-','S','Z','2','0','1',0,0}, {SZ2Relay1Ctrl, NULL, NULL}, {{BUTTON1, ENDPOINT_ONE}}},
-    {SZ202, true, 2, {'B','H','-','S','Z','2','0','2',0,0}, {SZ2Relay1Ctrl, SZ2Relay2Ctrl, NULL}, {{BUTTON0, ENDPOINT_ONE}, {BUTTON2, ENDPOINT_TWO}}},
-    {SZ203, true, 3, {'B','H','-','S','Z','2','0','3',0,0}, {SZ2Relay1Ctrl, SZ2Relay2Ctrl, SZ2Relay3Ctrl}, {{BUTTON0, ENDPOINT_ONE}, {BUTTON1, ENDPOINT_TWO}, {BUTTON2, ENDPOINT_THREE}}},
-
-    {SZ301, false, 1, {'B','H','-','S','Z','3','0','1',0,0}, {NULL, NULL, NULL}, {{BUTTON1, ENDPOINT_ONE}}},
-    {SZ302, false, 2, {'B','H','-','S','Z','3','0','2',0,0}, {NULL, NULL, NULL}, {{BUTTON0, ENDPOINT_ONE}, {BUTTON2, ENDPOINT_TWO}}},
-    {SZ303, false, 3, {'B','H','-','S','Z','3','0','3',0,0}, {NULL, NULL, NULL}, {{BUTTON0, ENDPOINT_ONE}, {BUTTON1, ENDPOINT_TWO}, {BUTTON2, ENDPOINT_THREE}}}
+    {
+		.type = SZ301, 
+		.auto_report = false, 
+		.relay_count = 1, 
+		.modelID[10] = {'B','H','-','S','Z','3','0','1',0,0}, 
+		.relay_info[RELAY_NUM] = {0}, 
+		.btn_ep_map[RELAY_NUM] = {{BUTTON1, ENDPOINT_ONE}}
+	},
+    {
+		.type = SZ302, 
+		.auto_report = false, 
+		.relay_count = 2, 
+		.modelID[10] = {'B','H','-','S','Z','3','0','2',0,0}, 
+		.relay_info[RELAY_NUM] = {0}, 
+		.btn_ep_map[RELAY_NUM] = {{BUTTON0, ENDPOINT_ONE},
+								  {BUTTON2, ENDPOINT_TWO}}
+	},
+    {
+		.type = SZ303, 
+		.auto_report = false, 
+		.relay_count = 3, 
+		.modelID[10] = {'B','H','-','S','Z','3','0','3',0,0}, 
+		.relay_info[RELAY_NUM] = {0}, 
+		.btn_ep_map[RELAY_NUM] = {{BUTTON0, ENDPOINT_ONE},
+								  {BUTTON1, ENDPOINT_TWO},
+								  {BUTTON2, ENDPOINT_THREE}}
+	}
 };
 
 #define SWITCH_MAX_RELAY  (g_switch_handle_tbl[g_hw_id_index].relay_count)
 #define SWITCH_MODEL_ID     (g_switch_handle_tbl[g_hw_id_index].modelID)
+#define RELAY_CTRL_PORT(num)	(g_switch_handle_tbl[g_hw_id_index].relay_info[num].ctrl_port)
+#define RELAY_CTRL_PIN(num)	(g_switch_handle_tbl[g_hw_id_index].relay_info[num].ctrl_pin)
+#define RELAY_CTRL_N_PORT(num)	(g_switch_handle_tbl[g_hw_id_index].relay_info[num].ctrl_n_port)
+#define RELAY_CTRL_N_PIN(num)	(g_switch_handle_tbl[g_hw_id_index].relay_info[num].ctrl_n_pin)
 #define SWITCH_TOGGLE(num, status) \
-    if (g_switch_handle_tbl[g_hw_id_index].relay_fn[num]) \
-        (g_switch_handle_tbl[g_hw_id_index].relay_fn[num])(status)
+    if (g_switch_handle_tbl[g_hw_id_index].relay_info[num].relay_fn) \
+        (g_switch_handle_tbl[g_hw_id_index].relay_info[num].relay_fn)(status)
 
 int HwIndexInit(void)
 {
@@ -370,7 +410,7 @@ int HwIndexInit(void)
 
 bool switch_auto_report_enable(void)
 {
-    return g_switch_handle_tbl[g_hw_id_index].auto_report_enable;
+    return g_switch_handle_tbl[g_hw_id_index].auto_report;
 }
 
 void ReportOnOffToCoordinator(uint8_t endpoint, bool newStatus)
