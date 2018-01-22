@@ -1,18 +1,30 @@
 #ifndef __LOCKER_H__
 #define __LOCKER_H__
 
+#include <unistd.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+
+#ifndef ERR
+#define ERR	(-1)
+#endif
+#ifndef OK
+#define OK	(0)
+#endif
+
 struct _locker;
 typedef struct _locker locker_t;
 
-typedef int (*create_fn)(locker_t *thiz);
-typedef void (*destroy_fn)(locker_t *thiz);
+typedef int (*locker_create_fn)(locker_t *thiz);
+typedef void (*locker_destroy_fn)(locker_t *thiz);
 typedef int (*lock_fn)(locker_t *thiz);
 typedef int (*unlock_fn)(locker_t *thiz);
 
 struct _locker
 {
-	create_fn create;
-	destroy_fn destroy;
+	locker_create_fn create;
+	locker_destroy_fn destroy;
 	lock_fn	lock;
 	unlock_fn unlock;
 	char priv[0];

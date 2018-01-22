@@ -1,5 +1,6 @@
 #include "locker.h"
 #include "shmer.h"
+#include "shm_com.h"
 
 typedef struct _shm_buf
 {
@@ -27,15 +28,14 @@ static int shm_create(shmer_t *thiz)
 	}
 
 	priv->shm_id = shm_id;
-	
-	priv->locker = locker_sem_setup(fname, 1);
-	int ret = priv->locker->create(priv->locker);
-	if (ret == ERR)
+
+    int ret = locker_create(priv->locker);
+    	if (ret == ERR)
 	{
-		thiz->shm_destroy(thiz);
+		thiz->destroy(thiz);
 		return ERR;
 	}
-	
+
 	return OK;
 }
 
@@ -43,7 +43,7 @@ static int shm_del(shmer_t *thiz)
 {
 	privinfo_t *priv = (privinfo_t *)thiz->priv;
 	int ret = -1;
-	
+
 	ret = shmctl(priv->shm_id, IPC_RMID, NULL);
 	if (ret == -1)
 	{
@@ -51,28 +51,25 @@ static int shm_del(shmer_t *thiz)
 	}
 
 	return OK;
-	
+
 }
 
 static void shm_destroy(shmer_t *thiz)
 {
-	if (thiz)
-	{
-		privinfo_t *priv = (privinfo_t *)thiz->priv;
-		if (priv && priv->locker)
-		{
-			priv->locker->destroy(priv->locker);
-		}
-		shm_del(thiz);
-		free(thiz);
-	}
+    if (thiz)
+    {
+        privinfo_t *priv = (privinfo_t *)thiz->priv;
+        locker_destroy(priv->locker);
+        shm_del(thiz);
+        free(thiz);
+    }
 }
 
 static int shm_map(shmer_t *thiz)
 {
 	privinfo_t *priv = (privinfo_t *)thiz->priv;
-	
-	priv->shm_addr = shmat(priv->sem_id, (void *)0, 0);
+
+	priv->shm_addr = shmat(priv->shm_id, (void *)0, 0);
 	if (priv->shm_addr == (void *)-1)
 	{
 		return ERR;
@@ -99,11 +96,11 @@ static int shm_write(shmer_t *thiz, void *data, int len)
 {
 	privinfo_t *priv = (privinfo_t *)thiz->priv;
 	shm_buf_t *p_shm_buf = (shm_buf_t *)priv->shm_addr;
-	
+
 	locker_lock(priv->locker);
 	memcpy(p_shm_buf->buf, (char *)data, len);
 	locker_unlock(priv->locker);
-	
+
 	return OK;
 }
 
@@ -119,7 +116,7 @@ static int shm_read(shmer_t *thiz, void *data)
 	return OK;
 }
 
-shmer_t *shmer_shm_setup(char *fname)
+shmer_t *shmer_shm_setup(const char *fname, locker_t *locker)
 {
 	shmer_t *thiz = (shmer_t *)malloc(sizeof(shmer_t) + sizeof(privinfo_t));
 	if (thiz != NULL)
@@ -135,8 +132,8 @@ shmer_t *shmer_shm_setup(char *fname)
 
 		priv->key = ftok(fname, 'b');
 		priv->shm_id = -1;
-		memset(priv->shm_buf, 0, sizeof(priv->shm_buf));
-		priv->locker = NULL;
+		memset(&(priv->shm_buf), 0, sizeof(priv->shm_buf));
+		priv->locker = locker;
 		priv->shm_addr = (void *)-1;
 	}
 

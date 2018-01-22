@@ -1,10 +1,6 @@
-#ifndef __SHM_COM_H__
-#define __SHM_COM_H__
+#ifndef __SHMER_H__
+#define __SHMER_H__
 
-#include <unistd.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
@@ -17,9 +13,9 @@ struct _shmer;
 typedef struct _shmer shmer_t;
 
 typedef int (*create_fn)(shmer_t *thiz);
-typedef void (*destroy_fn)shmer_t *thiz);
-typedef int (*write_fn)(shmer_t *thiz, void *data);
-typedef int (*read_fn)shmer_t *thiz, void *data);
+typedef void (*destroy_fn)(shmer_t *thiz);
+typedef int (*write_fn)(shmer_t *thiz, void *data, int len);
+typedef int (*read_fn)(shmer_t *thiz, void *data);
 typedef int (*map_fn)(shmer_t *thiz);
 typedef int (*unmap_fn)(shmer_t *thiz);
 

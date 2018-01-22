@@ -1,5 +1,9 @@
 #include <signal.h>
+
+#include "locker.h"
 #include "shmer.h"
+#include "sem_com.h"
+#include "shm_com.h"
 
 void ignore_signal(void)
 {
@@ -8,46 +12,65 @@ void ignore_signal(void)
 	signal(SIGQUIT, SIG_IGN);
 }
 
-void msg_produce(char *msg, int len)
+int msg_produce(char *msg, int len)
 {
 	if (msg == NULL || len <= 0)
 	{
 		return ERR;
 	}
 
-	snprintf(msg, len, "I am producer");
+    if (fgets(msg, len, stdin) == NULL)
+    {
+        return ERR;
+    }
+
 	msg[len - 1] = '\0';
+    return OK;
 }
 
-int main(int argc, char **argv)
+int main(void)
 {
-	char msg[SHM_BUF_SIZE] = {0};
-	shmer_t *shmer = NULL;
-	int ret = ERR;
-	
-	ignore_signal();
-	shmer = shmer_shm_setup('.');
+    char msg[SHM_BUF_SIZE] = {0};
+    shmer_t *shmer = NULL;
+    locker_t *locker = NULL;
+    int ret = ERR;
 
-	ret = shmer_create(shmer);
-	if (ret == ERR)
-	{
-		return ERR;
-	}
+    ignore_signal();
 
-	ret = shmer_map(shmer);
-	if (ret == ERR)
-	{
-		return ERR;
-	}
+    locker = locker_sem_setup(".", 1);
+    shmer = shmer_shm_setup(".", locker);
 
-	msg_produce(msg, sizeof(msg));
-	
-	ret = shmer_write(shmer, msg, sizeof(msg));
-	if (ret == ERR)
-	{
-		return ERR;
-	}
+    ret = shmer_create(shmer);
+    if (ret == ERR)
+    {
+        locker_destroy(locker);
+        return ERR;
+    }
 
-	
-	return OK;
+    ret = shmer_map(shmer);
+    if (ret == ERR)
+    {
+        shmer_destroy(shmer);
+        return ERR;
+    }
+
+    do
+    {
+        ret = msg_produce(msg, sizeof(msg));
+        if (ret == ERR)
+        {
+            break;
+        }
+
+        ret = shmer_write(shmer, msg, sizeof(msg));
+        if (ret == ERR)
+        {
+            break;
+        }
+    } while (strncmp(msg, "quit", 4) != 0);
+
+    shmer_unmap(shmer);
+    shmer_destroy(shmer);
+
+    return OK;
 }
