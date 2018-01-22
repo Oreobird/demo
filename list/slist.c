@@ -42,7 +42,7 @@ static slist_node_t *slist_get_node(list_t *thiz, int index, int fail_return_las
     privinfo_t *priv = (privinfo_t *)thiz->priv;
     slist_node_t *node = priv->first;
 
-    while (node != NULL && index > 0)
+    while (node != NULL && node->next != NULL && index > 0)
     {
         node = node->next;
         index--;
