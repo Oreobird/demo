@@ -8,6 +8,7 @@ cli_src:=costomer.c
 com_src:=$(filter-out $(srv_src) $(cli_src), $(wildcard *.c))
 com_obj:=$(patsubst %.c,%.o, $(notdir ${com_src}))
 
+CFLAGS:=CFLAG
 CFLAGS+=-W -Wall -Werror
 
 all: $(SRV) $(CLI)

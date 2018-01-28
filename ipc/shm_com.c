@@ -16,55 +16,6 @@ typedef struct _privinfo
 	void *shm_addr;
 } privinfo_t;
 
-static int shm_create(shmer_t *thiz)
-{
-	int shm_id = -1;
-	privinfo_t *priv = (privinfo_t *)thiz->priv;
-
-	shm_id = shmget(priv->key, sizeof(shm_buf_t), 0666 | IPC_CREAT);
-	if (shm_id == -1)
-	{
-		return ERR;
-	}
-
-	priv->shm_id = shm_id;
-
-    int ret = locker_create(priv->locker);
-    	if (ret == ERR)
-	{
-		thiz->destroy(thiz);
-		return ERR;
-	}
-
-	return OK;
-}
-
-static int shm_del(shmer_t *thiz)
-{
-	privinfo_t *priv = (privinfo_t *)thiz->priv;
-	int ret = -1;
-
-	ret = shmctl(priv->shm_id, IPC_RMID, NULL);
-	if (ret == -1)
-	{
-		return ERR;
-	}
-
-	return OK;
-
-}
-
-static void shm_destroy(shmer_t *thiz)
-{
-    if (thiz)
-    {
-        privinfo_t *priv = (privinfo_t *)thiz->priv;
-        locker_destroy(priv->locker);
-        shm_del(thiz);
-        free(thiz);
-    }
-}
-
 static int shm_map(shmer_t *thiz)
 {
 	privinfo_t *priv = (privinfo_t *)thiz->priv;
@@ -92,6 +43,59 @@ static int shm_unmap(shmer_t *thiz)
 	return OK;
 }
 
+static int shm_del(shmer_t *thiz)
+{
+	privinfo_t *priv = (privinfo_t *)thiz->priv;
+	int ret = -1;
+
+	ret = shmctl(priv->shm_id, IPC_RMID, NULL);
+	if (ret == -1)
+	{
+		return ERR;
+	}
+
+	return OK;
+
+}
+
+static void shm_destroy(shmer_t *thiz)
+{
+    if (thiz)
+    {
+        privinfo_t *priv = (privinfo_t *)thiz->priv;
+		shm_unmap(thiz);
+        locker_destroy(priv->locker);
+        shm_del(thiz);
+        free(thiz);
+		thiz = NULL;
+    }
+}
+
+static int shm_init(shmer_t *thiz)
+{
+	int shm_id = -1;
+	int ret = ERR;
+	privinfo_t *priv = (privinfo_t *)thiz->priv;
+	
+	shm_id = shmget(priv->key, sizeof(shm_buf_t), 0666 | IPC_CREAT);
+	if (shm_id == -1)
+	{
+		return ERR;
+	}
+
+	priv->shm_id = shm_id;
+
+	ret = shm_map(thiz);
+	if (ret == ERR)
+	{
+		shm_destroy(thiz);
+		return ERR;
+	}
+
+	return OK;
+}
+
+
 static int shm_write(shmer_t *thiz, void *data, int len)
 {
 	privinfo_t *priv = (privinfo_t *)thiz->priv;
@@ -116,17 +120,14 @@ static int shm_read(shmer_t *thiz, void *data)
 	return OK;
 }
 
-shmer_t *shmer_shm_setup(const char *fname, locker_t *locker)
+shmer_t *shmer_shm_create(const char *fname, locker_t *locker)
 {
 	shmer_t *thiz = (shmer_t *)malloc(sizeof(shmer_t) + sizeof(privinfo_t));
 	if (thiz != NULL)
 	{
 		privinfo_t *priv = (privinfo_t *)thiz->priv;
 
-		thiz->create = shm_create;
 		thiz->destroy = shm_destroy;
-		thiz->map = shm_map;
-		thiz->unmap = shm_unmap;
 		thiz->write = shm_write;
 		thiz->read = shm_read;
 
@@ -135,6 +136,13 @@ shmer_t *shmer_shm_setup(const char *fname, locker_t *locker)
 		memset(&(priv->shm_buf), 0, sizeof(priv->shm_buf));
 		priv->locker = locker;
 		priv->shm_addr = (void *)-1;
+
+		int ret = shm_init(thiz);
+		if (ret == ERR)
+		{
+			shm_destroy(thiz);
+			return NULL;
+		}
 	}
 
 	return thiz;

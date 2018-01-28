@@ -37,22 +37,8 @@ int main(void)
 
     ignore_signal();
 
-    locker = locker_sem_setup(".", 1);
-    shmer = shmer_shm_setup(".", locker);
-
-    ret = shmer_create(shmer);
-    if (ret == ERR)
-    {
-        locker_destroy(locker);
-        return ERR;
-    }
-
-    ret = shmer_map(shmer);
-    if (ret == ERR)
-    {
-        shmer_destroy(shmer);
-        return ERR;
-    }
+    locker = locker_sem_create(".", 1);
+    shmer = shmer_shm_create(".", locker);
 
     do
     {
@@ -69,7 +55,6 @@ int main(void)
         }
     } while (strncmp(msg, "quit", 4) != 0);
 
-    shmer_unmap(shmer);
     shmer_destroy(shmer);
 
     return OK;

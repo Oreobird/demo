@@ -36,7 +36,7 @@ static int sem_init(int sem_id, int init_value)
 	return OK;
 }
 
-static int sem_create(locker_t *thiz)
+static int sem_get(locker_t *thiz)
 {
 	int sem_id = -1;
 	privinfo_t *priv = NULL;
@@ -81,6 +81,7 @@ static void sem_destroy(locker_t *thiz)
 	{
 		sem_del(thiz);
 		free(thiz);
+		thiz = NULL;
 	}
 }
 
@@ -130,21 +131,27 @@ static int sem_v(locker_t *thiz)
 	return OK;
 }
 
-locker_t *locker_sem_setup(const char *fname, int init_value)
+locker_t *locker_sem_create(const char *fname, int init_value)
 {
 	locker_t *thiz = (locker_t *)malloc(sizeof(locker_t) + sizeof(privinfo_t));
 	if (thiz != NULL)
 	{
 		privinfo_t *priv = (privinfo_t *)thiz->priv;
 
-		thiz->create = sem_create;
 		thiz->destroy = sem_destroy;
 		thiz->lock = sem_p;
 		thiz->unlock = sem_v;
 
 		priv->key = ftok(fname, 'a');
 		priv->sem_id = -1;
-         priv->init_value = init_value;
+        priv->init_value = init_value;
+
+		int ret = shm_get(thiz)
+		if (ret == ERR)
+		{
+			sem_destroy(thiz);
+			return NULL;
+		}
 	}
 
 	return thiz;
