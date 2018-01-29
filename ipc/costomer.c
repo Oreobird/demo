@@ -4,6 +4,7 @@
 
 #include "sem_com.h"
 #include "shm_com.h"
+#include "mmap_com.h"
 
 int main(void)
 {
@@ -16,7 +17,7 @@ int main(void)
 #if defined(TEST_SHM)
     shmer = shmer_shm_create(".", locker);
 #elif defined(TEST_MMAP)
-	shmer = shmer_mmap_create('/dev/zero', locker);
+	shmer = shmer_mmap_create("/home/zgs/github/demo/ipc/mymap", locker);
 #endif
 	if (shmer == NULL)
 	{

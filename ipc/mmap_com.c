@@ -19,25 +19,26 @@ typedef struct _privinfo
 
 static int mmap_map(shmer_t *thiz)
 {
-	privinfo_t *priv = (privinfo_t *)thiz->priv;
-	int len = lseek(priv->fd, 0, SEEK_END);
+    privinfo_t *priv = (privinfo_t *)thiz->priv;
 
-	priv->map_addr = mmap(NULL, len, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
-	if (priv->map_addr < 0)
-	{
-		return ERR;
-	}
+    lseek(priv->fd, sizeof(priv->map_buf) - 1, SEEK_SET);
+    write(priv->fd, "", 1);
 
-	return OK;
+    priv->map_addr = mmap(NULL, sizeof(priv->map_buf), PROT_READ|PROT_WRITE, MAP_SHARED, priv->fd, 0);
+    if (priv->map_addr == MAP_FAILED)
+    {
+        return ERR;
+    }
+
+    return OK;
 }
 
 static int mmap_unmap(shmer_t *thiz)
 {
 	privinfo_t *priv = (privinfo_t *)thiz->priv;
-	int len = lseek(priv->fd, 0, SEEK_END);
 	int ret = -1;
 
-	ret = munmap(priv->map_addr, len);
+	ret = munmap(priv->map_addr, sizeof(priv->map_buf));
 	if (ret < 0)
 	{
 		return ERR;
@@ -60,7 +61,7 @@ static void mmap_destroy(shmer_t *thiz)
 		{
 			close(priv->fd);
 		}
-		
+
 		mmap_unmap(thiz);
         locker_destroy(priv->locker);
         free(thiz);
@@ -102,14 +103,14 @@ shmer_t *shmer_mmap_create(const char *fname, locker_t *locker)
 		thiz->write = mmap_write;
 		thiz->read = mmap_read;
 
-		priv->fd = open(fname, O_CREAT|O_RDWR|O_TRUNC);
+		priv->fd = open(fname, O_CREAT|O_RDWR, 0777);
 		if (priv->fd == -1)
 		{
 			free(thiz);
 			thiz = NULL;
 			return NULL;
 		}
-		
+
 		memset(&(priv->map_buf), 0, sizeof(priv->map_buf));
 		priv->locker = locker;
 		priv->map_addr = (void *)-1;

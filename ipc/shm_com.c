@@ -45,17 +45,16 @@ static int shm_unmap(shmer_t *thiz)
 
 static int shm_del(shmer_t *thiz)
 {
-	privinfo_t *priv = (privinfo_t *)thiz->priv;
-	int ret = -1;
+    privinfo_t *priv = (privinfo_t *)thiz->priv;
+    int ret = -1;
 
-	ret = shmctl(priv->shm_id, IPC_RMID, NULL);
-	if (ret == -1)
-	{
-		return ERR;
-	}
+    ret = shmctl(priv->shm_id, IPC_RMID, NULL);
+    if (ret == -1)
+    {
+        return ERR;
+    }
 
-	return OK;
-
+    return OK;
 }
 
 static void shm_destroy(shmer_t *thiz)
@@ -63,36 +62,36 @@ static void shm_destroy(shmer_t *thiz)
     if (thiz)
     {
         privinfo_t *priv = (privinfo_t *)thiz->priv;
-		shm_unmap(thiz);
+        shm_unmap(thiz);
         locker_destroy(priv->locker);
         shm_del(thiz);
         free(thiz);
-		thiz = NULL;
+        thiz = NULL;
     }
 }
 
 static int shm_init(shmer_t *thiz)
 {
-	int shm_id = -1;
-	int ret = ERR;
-	privinfo_t *priv = (privinfo_t *)thiz->priv;
-	
-	shm_id = shmget(priv->key, sizeof(shm_buf_t), 0666 | IPC_CREAT);
-	if (shm_id == -1)
-	{
-		return ERR;
-	}
+    int shm_id = -1;
+    int ret = ERR;
+    privinfo_t *priv = (privinfo_t *)thiz->priv;
 
-	priv->shm_id = shm_id;
+    shm_id = shmget(priv->key, sizeof(shm_buf_t), 0666 | IPC_CREAT);
+    if (shm_id == -1)
+    {
+        return ERR;
+    }
 
-	ret = shm_map(thiz);
-	if (ret == ERR)
-	{
-		shm_destroy(thiz);
-		return ERR;
-	}
+    priv->shm_id = shm_id;
 
-	return OK;
+    ret = shm_map(thiz);
+    if (ret == ERR)
+    {
+        shm_destroy(thiz);
+        return ERR;
+    }
+
+    return OK;
 }
 
 

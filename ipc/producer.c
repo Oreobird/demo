@@ -4,6 +4,7 @@
 #include "shmer.h"
 #include "sem_com.h"
 #include "shm_com.h"
+#include "mmap_com.h"
 
 void ignore_signal(void)
 {
@@ -38,7 +39,16 @@ int main(void)
     ignore_signal();
 
     locker = locker_sem_create(".", 1);
+#if defined(TEST_SHM)
     shmer = shmer_shm_create(".", locker);
+#elif defined(TEST_MMAP)
+    shmer = shmer_mmap_create("/home/zgs/github/demo/ipc/mymap", locker);
+#endif
+    if (shmer == NULL)
+    {
+        locker_destroy(locker);
+        return ERR;
+    }
 
     do
     {

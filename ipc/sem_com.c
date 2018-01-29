@@ -146,7 +146,7 @@ locker_t *locker_sem_create(const char *fname, int init_value)
 		priv->sem_id = -1;
         priv->init_value = init_value;
 
-		int ret = shm_get(thiz)
+		int ret = sem_get(thiz);
 		if (ret == ERR)
 		{
 			sem_destroy(thiz);
