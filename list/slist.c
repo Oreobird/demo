@@ -172,11 +172,7 @@ int slist_prepend(list_t *thiz, void *data)
 void slist_reverse(list_t *thiz)
 {
     privinfo_t *priv = (privinfo_t *)thiz->priv;
-    slist_node_t *r, *s, *t = NULL;
-
-    s = priv->first;
-    if (s == NULL)
-        return;
+    slist_node_t *r = NULL, *s = priv->first, *t = NULL;
 
     while (s != NULL)
     {

@@ -2,8 +2,7 @@ SRC:=$(wildcard *.c)
 OBJ:=$(patsubst %.c, %.o, $(notdir ${SRC}))
 BIN:=list
 
-#CFLAGS+=-DTEST_DOUBLE_LIST
-CFLAGS+=-DTEST_SINGLE_LIST
+CFLAGS:=$(CFLAG)
 CC=gcc
 
 all: $(BIN) 
