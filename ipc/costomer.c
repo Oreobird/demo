@@ -2,7 +2,7 @@
 #include "locker.h"
 #include "shmer.h"
 
-#include "sem_com.h"
+#include "sem_sysv.h"
 #include "shm_com.h"
 #include "mmap_com.h"
 
@@ -24,7 +24,7 @@ int main(void)
 		locker_destroy(locker);
 		return ERR;
 	}
-	
+
     do
 	{
 		ret = shmer_read(shmer, msg);
@@ -36,8 +36,8 @@ int main(void)
 
 	    printf("Consumer msg: %s\n", msg);
     } while (strncmp(msg, "quit", 4) != 0);
-	
+
     shmer_destroy(shmer);
-	
+
     return OK;
 }
