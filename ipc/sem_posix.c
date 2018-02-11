@@ -33,6 +33,8 @@ static int sem_posix_unlink(locker_t *thiz)
     int ret = -1;
     privinfo_t *priv = (privinfo_t *)thiz->priv;
 
+    sem_close(priv->sem);
+
     ret = sem_unlink(priv->name);
     if (ret < 0)
     {

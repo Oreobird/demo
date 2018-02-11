@@ -36,13 +36,18 @@ int main(void)
     shmer_t *shmer = NULL;
     locker_t *locker = NULL;
     int ret = ERR;
+    int init_value = 0;
 
     ignore_signal();
 
+#if defined(AS_MUTEX)
+    init_value = 1;
+#endif
+
 #if defined(SYSV_SEM)
-    locker = locker_sem_sysv_create(".", 1);
+    locker = locker_sem_sysv_create(".", init_value);
 #elif defined(POSIX_SEM)
-    locker = locker_sem_posix_create("my_posix_sem", 1);
+    locker = locker_sem_posix_create("my_posix_sem", init_value);
 #endif
 
 #if defined(TEST_SHM)
@@ -64,7 +69,11 @@ int main(void)
             break;
         }
 
+        #if defined(AS_MUTEX)
         ret = shmer_write(shmer, msg, sizeof(msg));
+        #else
+        ret = shmer_sync_write(shmer, msg, sizeof(msg));
+        #endif
         if (ret == ERR)
         {
             break;

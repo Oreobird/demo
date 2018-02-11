@@ -16,16 +16,16 @@
 struct _locker;
 typedef struct _locker locker_t;
 
-typedef void (*locker_destroy_fn)(locker_t *thiz);
-typedef int (*lock_fn)(locker_t *thiz);
-typedef int (*unlock_fn)(locker_t *thiz);
+typedef void (*locker_destroy_fn_t)(locker_t *thiz);
+typedef int (*lock_fn_t)(locker_t *thiz);
+typedef int (*unlock_fn_t)(locker_t *thiz);
 
 struct _locker
 {
-	locker_destroy_fn destroy;
-	lock_fn	lock;
-	unlock_fn unlock;
-	char priv[0];
+    locker_destroy_fn_t destroy;
+    lock_fn_t lock;
+    unlock_fn_t unlock;
+    char priv[0];
 };
 
 static inline void locker_destroy(locker_t *thiz)
@@ -49,4 +49,5 @@ static inline int locker_unlock(locker_t *thiz)
 		return ERR;
 	return thiz->unlock ? thiz->unlock(thiz) : ERR;
 }
+
 #endif

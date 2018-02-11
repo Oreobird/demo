@@ -119,6 +119,28 @@ static int shm_read(shmer_t *thiz, void *data)
 	return OK;
 }
 
+static int shm_sync_write(shmer_t *thiz, void *data, int len)
+{
+	privinfo_t *priv = (privinfo_t *)thiz->priv;
+	shm_buf_t *p_shm_buf = (shm_buf_t *)priv->shm_addr;
+
+	memcpy(p_shm_buf->buf, (char *)data, len);
+	locker_unlock(priv->locker);
+
+	return OK;
+}
+
+static int shm_sync_read(shmer_t *thiz, void *data)
+{
+	privinfo_t *priv = (privinfo_t *)thiz->priv;
+	shm_buf_t *p_shm_buf = (shm_buf_t *)priv->shm_addr;
+
+	locker_lock(priv->locker);
+	memcpy(data, (void *)p_shm_buf->buf, sizeof(p_shm_buf->buf));
+
+	return OK;
+}
+
 shmer_t *shmer_shm_create(const char *fname, locker_t *locker)
 {
 	shmer_t *thiz = (shmer_t *)malloc(sizeof(shmer_t) + sizeof(privinfo_t));
@@ -129,6 +151,8 @@ shmer_t *shmer_shm_create(const char *fname, locker_t *locker)
 		thiz->destroy = shm_destroy;
 		thiz->write = shm_write;
 		thiz->read = shm_read;
+         thiz->sync_write = shm_sync_write;
+         thiz->sync_read = shm_sync_read;
 
 		priv->key = ftok(fname, 'b');
 		priv->shm_id = -1;
