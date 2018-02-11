@@ -3,6 +3,7 @@
 #include "shmer.h"
 
 #include "sem_sysv.h"
+#include "sem_posix.h"
 #include "shm_com.h"
 #include "mmap_com.h"
 
@@ -13,7 +14,12 @@ int main(void)
     locker_t *locker = NULL;
     int ret = ERR;
 
-    locker = locker_sem_create(".", 1);
+#if defined(SYSV_SEM)
+    locker = locker_sem_sysv_create(".", 1);
+#elif defined(POSIX_SEM)
+    locker = locker_sem_posix_create("my_posix_sem", 1);
+#endif
+
 #if defined(TEST_SHM)
     shmer = shmer_shm_create(".", locker);
 #elif defined(TEST_MMAP)

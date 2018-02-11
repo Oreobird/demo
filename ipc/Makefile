@@ -10,6 +10,7 @@ com_obj:=$(patsubst %.c,%.o, $(notdir ${com_src}))
 
 CFLAGS:=$(CFLAG)
 CFLAGS+=-W -Wall -Werror
+LDFLAGS=-lpthread
 
 all: $(SRV) $(CLI)
 

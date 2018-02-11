@@ -2,6 +2,7 @@
 
 #include "locker.h"
 #include "shmer.h"
+#include "sem_posix.h"
 #include "sem_sysv.h"
 #include "shm_com.h"
 #include "mmap_com.h"

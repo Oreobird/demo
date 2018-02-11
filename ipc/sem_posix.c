@@ -7,7 +7,7 @@
 typedef struct _privinfo
 {
     char name[20];
-    sem_t sem;
+    sem_t *sem;
     int init_value;
 } privinfo_t;
 
@@ -19,7 +19,7 @@ static int sem_posix_open(locker_t *thiz)
 	if (priv == NULL)
 		return ERR;
 
-	priv->sem = sem_open(priv->name, IPC_CREAT, 0666, priv->init_value);
+	priv->sem = sem_open(priv->name, O_CREAT, 0666, priv->init_value);
 	if (priv->sem == SEM_FAILED)
 	{
 		return ERR;
@@ -66,6 +66,7 @@ static int sem_posix_block_p(locker_t *thiz)
     return OK;
 }
 
+#if 0
 static int sem_posix_unblock_p(locker_t *thiz)
 {
     int ret = -1;
@@ -79,6 +80,7 @@ static int sem_posix_unblock_p(locker_t *thiz)
 
     return OK;
 }
+#endif
 
 static int sem_posix_v(locker_t *thiz)
 {
@@ -94,7 +96,7 @@ static int sem_posix_v(locker_t *thiz)
     return OK;
 }
 
-locker_t *locker_sem_sysv_create(const char *fname, int init_value)
+locker_t *locker_sem_posix_create(const char *fname, int init_value)
 {
     locker_t *thiz = (locker_t *)malloc(sizeof(locker_t) + sizeof(privinfo_t));
     if (thiz != NULL)
