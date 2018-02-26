@@ -1,13 +1,16 @@
 TARGET_EXEC:=mf_demo
+OBJ_DIR:=$(shell pwd)
+
 EXCLUDE_DIR:=
 
 # src dirs
-SRC_SUBDIR:=$(filter-out $(EXCLUDE_DIR), $(shell find . -maxdepth 1 -type d))
+SRC_DIR:=$(filter-out $(EXCLUDE_DIR), $(shell find . -maxdepth 1 -type d))
+
 # src files
-SRC_C:=$(foreach dir, $(SRC_SUBDIR), $(wildcard $(dir)/*.c))
+SRC_C:=$(foreach dir, $(SRC_DIR), $(wildcard $(dir)/*.c))
+
 # obj files
-SUB_OBJ:=$(patsubst %.c, %.o, ${SRC_C})
-TARGET_OBJ:=$(SUB_OBJ) $(TARGET_EXEC).o
+TARGET_OBJ:=$(patsubst %.c, $(OBJ_DIR)/%.o, ${SRC_C})
 
 LDFLAGS+=$(LDFLAG_EXT)
 CFLAGS+=$(CFLAG_EXT) -W -Wall -Werror
@@ -15,14 +18,14 @@ CFLAGS+=$(CFLAG_EXT) -W -Wall -Werror
 all: $(TARGET_EXEC)
 
 $(TARGET_EXEC): $(TARGET_OBJ)
-	@echo "Starting build..."
-	$(CC) $(CFLAGS) -o $@ $(SRC_C) $(LDFLAGS)
+	$(CC) $(CFLAGS) -o $@ $(TARGET_OBJ) $(LDFLAGS)
 	@echo "Build done"
 
-%.o: %.c
-	$(CC) $(CFLAGS) -c -o $@ $<
+${OBJ_DIR}/%.o: ${SRC_DIR}/%.c
+	@echo $<
+	$(CC) $(CFLAGS) -c $< -o $@
 	
 .PHONY:clean
 clean:
 	@rm $(TARGET_EXEC) -rf
-	@find . -maxdepth 2 -name *.o -exec rm -rf {} \;
+	@rm $(TARGET_OBJ) -rf
