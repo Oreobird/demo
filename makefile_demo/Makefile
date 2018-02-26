@@ -24,4 +24,5 @@ $(TARGET_EXEC): $(TARGET_OBJ)
 	
 .PHONY:clean
 clean:
+	@rm $(TARGET_EXEC) -rf
 	@find . -maxdepth 2 -name *.o -exec rm -rf {} \;
