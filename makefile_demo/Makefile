@@ -12,8 +12,10 @@ SRC_C:=$(foreach dir, $(SRC_DIR), $(wildcard $(dir)/*.c))
 # obj files
 TARGET_OBJ:=$(patsubst %.c, $(OBJ_DIR)/%.o, ${SRC_C})
 
+INC_FLAGS:=$(patsubst %, -I%, $(SRC_DIR))
+
 LDFLAGS+=$(LDFLAG_EXT)
-CFLAGS+=$(CFLAG_EXT) -W -Wall -Werror
+CFLAGS+=$(CFLAG_EXT) -W -Wall -Werror $(INC_FLAGS)
 
 all: $(TARGET_EXEC)
 
