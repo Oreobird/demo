@@ -1,4 +1,4 @@
-TARGET_EXEC:=mf_demo
+TARGET_EXEC:=main
 OBJ_DIR:=$(shell pwd)
 
 EXCLUDE_DIR:=
@@ -15,7 +15,7 @@ TARGET_OBJ:=$(patsubst %.c, $(OBJ_DIR)/%.o, ${SRC_C})
 INC_FLAGS:=$(patsubst %, -I%, $(SRC_DIR))
 
 LDFLAGS+=$(LDFLAG_EXT)
-CFLAGS+=$(CFLAG_EXT) $(INC_FLAGS)
+CFLAGS+=$(CFLAG_EXT) -W -Wall -Werror$(INC_FLAGS)
 
 all: $(TARGET_EXEC)
 

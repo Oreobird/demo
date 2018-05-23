@@ -4,10 +4,14 @@
 
 #include "notifier.h"
 #include "chain.h"
+#include "common.h"
 
 static int test_action_call(struct notifier_block *nb,
 			                unsigned long action, void *data)
 {
+    UNUSED_VAL(nb);
+    UNUSED_VAL(data);
+
     switch (action)
     {
         case EVENTCHAIN_INIT:

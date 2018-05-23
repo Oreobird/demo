@@ -20,16 +20,7 @@ struct notifier_head
 	struct notifier_block *head;
 };
 
-#define INIT_NOTIFIER_HEAD(name) do {	\
-		(name)->head = NULL;		\
-	} while (0)
-
-#define NOTIFIER_INIT(name)	{				\
-		.head = NULL }
-
-#define NOTIFIER_HEAD(name)					\
-	struct notifier_head name =				\
-		NOTIFIER_INIT(name)
+#define NOTIFIER_HEAD(name)	struct notifier_head name =	{ .head = NULL }
 
 int notifier_chain_register(struct notifier_block **nl,
 		struct notifier_block *nb);
